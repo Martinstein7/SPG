@@ -63,3 +63,4 @@ O SPG é uma aplicação web que permite a criação de playlists personalizadas
 <div align="center">
   Feito com 💜 por Willian
 </div>
+
