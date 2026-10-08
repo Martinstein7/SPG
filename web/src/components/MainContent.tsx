@@ -6,6 +6,7 @@ export function MainContent({ token }: { token: string }) {
   const [profile, setProfile] = useState<any>(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [playlistError, setPlaylistError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -14,7 +15,8 @@ export function MainContent({ token }: { token: string }) {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => res.json())
-      .then(data => setProfile(data));
+      .then(data => setProfile(data))
+      .catch(err => console.error("Erro Perfil:", err));
 
       // Buscar playlists reais do usuario
       fetch('https://api.spotify.com/v1/me/playlists?limit=10', {
@@ -22,10 +24,16 @@ export function MainContent({ token }: { token: string }) {
       })
       .then(res => res.json())
       .then(data => {
-        if(data.items) {
+        if (data.error) {
+          setPlaylistError(data.error.message);
+        } else if (data.items) {
           setPlaylists(data.items);
+          if (data.items.length === 0) {
+            setPlaylistError("Sua conta do Spotify retornou 0 playlists. Você realmente tem playlists criadas?");
+          }
         }
-      });
+      })
+      .catch(err => setPlaylistError(err.toString()));
     }
   }, [token]);
 
@@ -124,9 +132,13 @@ export function MainContent({ token }: { token: string }) {
           <a href={profile?.external_urls?.spotify} target="_blank" className="text-sm text-spotify-green hover:underline transition-colors">Abrir Spotify &rarr;</a>
         </div>
         
-        {playlists.length === 0 ? (
+        {playlistError ? (
+          <div className="text-red-400 bg-dark-surface p-6 rounded-xl text-center border border-red-900/30">
+            {playlistError}
+          </div>
+        ) : playlists.length === 0 ? (
           <div className="text-gray-400 bg-dark-surface p-6 rounded-xl text-center border border-gray-800">
-            Carregando suas playlists ou você ainda não possui nenhuma...
+            Carregando suas playlists...
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
