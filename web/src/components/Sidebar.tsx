@@ -1,6 +1,20 @@
 import { Home, ListMusic, History, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-export function Sidebar() {
+export function Sidebar({ token }: { token: string }) {
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (token) {
+      fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => setProfile(data))
+      .catch(err => console.error("Erro ao buscar perfil:", err));
+    }
+  }, [token]);
+
   return (
     <aside className="w-64 bg-dark-surface h-full flex flex-col p-6 border-r border-gray-800">
       <div className="flex items-center gap-3 mb-10">
@@ -29,18 +43,23 @@ export function Sidebar() {
         </a>
       </nav>
 
-      <div className="mt-auto flex items-center gap-3 bg-[#110e19] p-4 rounded-xl border border-gray-800">
-        <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
-          {/* Imagem do usuario viria aqui */}
-          <img src="https://ui-avatars.com/api/?name=Willian&background=1DB954&color=fff" alt="User" className="w-full h-full object-cover" />
+      {profile && (
+        <div className="mt-auto flex items-center gap-3 bg-[#110e19] p-4 rounded-xl border border-gray-800">
+          <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
+            <img 
+              src={profile.images?.[0]?.url || `https://ui-avatars.com/api/?name=${profile.display_name}&background=1DB954&color=fff`} 
+              alt={profile.display_name} 
+              className="w-full h-full object-cover" 
+            />
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-sm font-bold text-white truncate">{profile.display_name}</span>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-spotify-green"></span> Conectado
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-sm font-bold text-white truncate">Willian</span>
-          <span className="text-xs text-gray-400 flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-spotify-green"></span> Conectado
-          </span>
-        </div>
-      </div>
+      )}
     </aside>
   );
 }
