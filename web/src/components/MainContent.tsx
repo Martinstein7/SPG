@@ -144,9 +144,9 @@ export function MainContent({ token }: { token: string }) {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {playlists.map((pl, i) => (
               <a 
-                href={pl.external_urls.spotify} 
+                href={pl.external_urls?.spotify || '#'} 
                 target="_blank" 
-                key={pl.id} 
+                key={pl.id || i} 
                 className="bg-dark-surface p-4 rounded-xl hover:bg-[#252033] transition-colors cursor-pointer group"
               >
                 <div className="aspect-square bg-gray-800 rounded-lg mb-4 overflow-hidden flex items-center justify-center">
@@ -156,8 +156,8 @@ export function MainContent({ token }: { token: string }) {
                     <Music size={40} className="text-gray-600" />
                   )}
                 </div>
-                <h4 className="font-bold text-white mb-1 truncate">{pl.name}</h4>
-                <p className="text-xs text-gray-400">{pl.tracks.total} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
+                <h4 className="font-bold text-white mb-1 truncate">{pl.name || 'Sem nome'}</h4>
+                <p className="text-xs text-gray-400">{pl.tracks?.total || 0} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
               </a>
             ))}
           </div>
