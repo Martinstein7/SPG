@@ -29,14 +29,44 @@ export function MainContent({ token }: { token: string }) {
     }
   }, [token]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if(!prompt) return;
     setIsGenerating(true);
-    // Aqui chamaremos a rota do nosso Backend para falar com o Gemini futuramente
-    setTimeout(() => {
-      alert(`A IA interpretou: "${prompt}"\n\n(A integração real com o Gemini será o próximo passo!)`);
+    
+    try {
+      const response = await fetch('http://127.0.0.1:3000/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt, token })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        alert("Playlist criada com sucesso no seu Spotify!");
+        window.open(data.url, "_blank");
+        setPrompt(""); // Limpa o input
+        
+        // Atualiza a lista de playlists após 2 segundos pra dar tempo do Spotify processar
+        setTimeout(() => {
+          fetch('https://api.spotify.com/v1/me/playlists?limit=10', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if(data.items) setPlaylists(data.items);
+          });
+        }, 2000);
+      } else {
+        alert("Ops, deu um erro: " + data.error);
+      }
+    } catch (err) {
+      alert("Erro de conexão com o servidor.");
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   return (

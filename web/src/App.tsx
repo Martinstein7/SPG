@@ -28,7 +28,7 @@ function App() {
 
   const handleLogin = () => {
     // Redireciona para o nosso backend, que vai iniciar o fluxo do Spotify
-    window.location.href = 'http://localhost:3000/api/auth/login';
+    window.location.href = 'http://127.0.0.1:3000/api/auth/login';
   };
 
   if (!token) {
