@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
+import { PlaylistsView } from './components/views/PlaylistsView';
+import { HistoryView } from './components/views/HistoryView';
+import { SettingsView } from './components/views/SettingsView';
 import { ListMusic } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [token, setToken] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'home' | 'playlists' | 'history' | 'settings'>('home');
 
   useEffect(() => {
     // Verifica se há token na URL (vindo do redirecionamento do backend)
@@ -59,8 +63,11 @@ function App() {
 
   return (
     <div className="flex h-screen bg-dark-base font-sans overflow-hidden">
-      <Sidebar token={token} />
-      <MainContent token={token} />
+      <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
+      {currentView === 'home' && <MainContent token={token} />}
+      {currentView === 'playlists' && <PlaylistsView token={token} />}
+      {currentView === 'history' && <HistoryView />}
+      {currentView === 'settings' && <SettingsView />}
     </div>
   );
 }

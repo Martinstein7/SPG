@@ -74,7 +74,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     // 1. Pedir pro Gemini gerar uma lista de 10 a 15 músicas perfeitas pro tema
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-1.5-flash',
       contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
       Recomende 15 músicas perfeitamente encaixadas nesse clima. Responda apenas com os dados no formato exigido, sem textos extras.`,
       config: {

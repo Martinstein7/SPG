@@ -1,7 +1,15 @@
 import { Home, ListMusic, History, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export function Sidebar({ token }: { token: string }) {
+export function Sidebar({ 
+  token, 
+  currentView, 
+  setCurrentView 
+}: { 
+  token: string, 
+  currentView: string, 
+  setCurrentView: (view: 'home' | 'playlists' | 'history' | 'settings') => void 
+}) {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -25,19 +33,31 @@ export function Sidebar({ token }: { token: string }) {
       </div>
 
       <nav className="flex flex-col gap-4 flex-1">
-        <button className="flex items-center gap-3 text-white bg-primary-purple/20 px-4 py-3 rounded-lg font-medium text-left">
+        <button 
+          onClick={() => setCurrentView('home')} 
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-left transition-colors ${currentView === 'home' ? 'text-white bg-primary-purple/20' : 'text-gray-400 hover:text-white'}`}
+        >
           <Home size={20} />
           Início
         </button>
-        <button onClick={() => alert("Em breve: Gerenciamento detalhado de playlists!")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
+        <button 
+          onClick={() => setCurrentView('playlists')} 
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-left transition-colors ${currentView === 'playlists' ? 'text-white bg-primary-purple/20' : 'text-gray-400 hover:text-white'}`}
+        >
           <ListMusic size={20} />
           Minhas Playlists
         </button>
-        <button onClick={() => alert("Em breve: Veja o histórico de todas as playlists geradas.")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
+        <button 
+          onClick={() => setCurrentView('history')} 
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-left transition-colors ${currentView === 'history' ? 'text-white bg-primary-purple/20' : 'text-gray-400 hover:text-white'}`}
+        >
           <History size={20} />
           Histórico
         </button>
-        <button onClick={() => alert("Em breve: Ajuste de IA e preferências.")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
+        <button 
+          onClick={() => setCurrentView('settings')} 
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-left transition-colors ${currentView === 'settings' ? 'text-white bg-primary-purple/20' : 'text-gray-400 hover:text-white'}`}
+        >
           <Settings size={20} />
           Configurações
         </button>
