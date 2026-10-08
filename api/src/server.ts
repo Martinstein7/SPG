@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 // Endpoint para iniciar o login com o Spotify
 app.get('/api/auth/login', (req, res) => {
-  const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private';
+  const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
   const authQueryParameters = new URLSearchParams({
     response_type: 'code',
     client_id: SPOTIFY_CLIENT_ID as string,
@@ -74,7 +74,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     // 1. Pedir pro Gemini gerar uma lista de 10 a 15 músicas perfeitas pro tema
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
       Recomende 15 músicas perfeitamente encaixadas nesse clima. Responda apenas com os dados no formato exigido, sem textos extras.`,
       config: {

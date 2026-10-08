@@ -25,39 +25,50 @@ export function Sidebar({ token }: { token: string }) {
       </div>
 
       <nav className="flex flex-col gap-4 flex-1">
-        <a href="#" className="flex items-center gap-3 text-white bg-primary-purple/20 px-4 py-3 rounded-lg font-medium">
+        <button className="flex items-center gap-3 text-white bg-primary-purple/20 px-4 py-3 rounded-lg font-medium text-left">
           <Home size={20} />
           Início
-        </a>
-        <a href="#" className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors">
+        </button>
+        <button onClick={() => alert("Em breve: Gerenciamento detalhado de playlists!")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
           <ListMusic size={20} />
           Minhas Playlists
-        </a>
-        <a href="#" className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors">
+        </button>
+        <button onClick={() => alert("Em breve: Veja o histórico de todas as playlists geradas.")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
           <History size={20} />
           Histórico
-        </a>
-        <a href="#" className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors">
+        </button>
+        <button onClick={() => alert("Em breve: Ajuste de IA e preferências.")} className="flex items-center gap-3 text-gray-400 hover:text-white px-4 py-3 rounded-lg font-medium transition-colors text-left">
           <Settings size={20} />
           Configurações
-        </a>
+        </button>
       </nav>
 
       {profile && (
-        <div className="mt-auto flex items-center gap-3 bg-[#110e19] p-4 rounded-xl border border-gray-800">
-          <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
-            <img 
-              src={profile.images?.[0]?.url || `https://ui-avatars.com/api/?name=${profile.display_name}&background=1DB954&color=fff`} 
-              alt={profile.display_name} 
-              className="w-full h-full object-cover" 
-            />
+        <div className="mt-auto flex items-center justify-between bg-[#110e19] p-4 rounded-xl border border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
+              <img 
+                src={profile.images?.[0]?.url || `https://ui-avatars.com/api/?name=${profile.display_name}&background=1DB954&color=fff`} 
+                alt={profile.display_name} 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-bold text-white truncate">{profile.display_name}</span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-spotify-green"></span> Conectado
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-bold text-white truncate">{profile.display_name}</span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-spotify-green"></span> Conectado
-            </span>
-          </div>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('spotify_token');
+              window.location.reload();
+            }}
+            className="text-xs text-gray-500 hover:text-white underline"
+          >
+            Sair
+          </button>
         </div>
       )}
     </aside>
