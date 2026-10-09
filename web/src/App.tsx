@@ -19,12 +19,14 @@ function App() {
     const savedPrimaryColor = localStorage.getItem('theme_primary_purple');
     const savedSurfaceColor = localStorage.getItem('theme_dark_surface');
     const savedInnerColor = localStorage.getItem('theme_dark_inner');
+    const savedBgImage = localStorage.getItem('theme_bg_image');
 
     if (savedBgColor) document.documentElement.style.setProperty('--theme-dark-base', savedBgColor);
     if (savedTitleColor) document.documentElement.style.setProperty('--theme-text-title', savedTitleColor);
     if (savedPrimaryColor) document.documentElement.style.setProperty('--theme-primary-purple', savedPrimaryColor);
     if (savedSurfaceColor) document.documentElement.style.setProperty('--theme-dark-surface', savedSurfaceColor);
     if (savedInnerColor) document.documentElement.style.setProperty('--theme-dark-inner', savedInnerColor);
+    if (savedBgImage) document.documentElement.style.setProperty('--theme-bg-image', `url(${savedBgImage})`);
 
     // Verifica se há token na URL (vindo do redirecionamento do backend)
     const hash = window.location.hash;
@@ -76,7 +78,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-dark-base font-sans overflow-hidden">
+    <div className="flex h-screen bg-transparent font-sans overflow-hidden">
       <Toaster 
         position="top-right"
         toastOptions={{

@@ -153,7 +153,7 @@ export function MainContent({ token }: { token: string }) {
   };
 
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
+    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
       {/* Cabeçalho de Boas Vindas */}
       <div className="mb-12">
         <h2 className="text-4xl font-bold mb-2">

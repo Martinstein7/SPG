@@ -9,12 +9,52 @@ export function SettingsView() {
   const [surfaceColor, setSurfaceColor] = useState(localStorage.getItem('theme_dark_surface') || '#1A1625');
   const [innerColor, setInnerColor] = useState(localStorage.getItem('theme_dark_inner') || '#110e19');
 
+  const [bgType, setBgType] = useState<'solid' | 'image' | 'ai'>(localStorage.getItem('theme_bg_type') as any || 'solid');
+  const [bgImage, setBgImage] = useState<string>(localStorage.getItem('theme_bg_image') || '');
+  const [bgAIPrompt, setBgAIPrompt] = useState<string>('');
+  const [isGeneratingBg, setIsGeneratingBg] = useState(false);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setBgImage(base64);
+        setBgType('image');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateAIBg = () => {
+    if (!bgAIPrompt) return;
+    setIsGeneratingBg(true);
+    // Mock AI generation by using Unsplash source API with the prompt as keyword
+    setTimeout(() => {
+      const mockUrl = `https://source.unsplash.com/1920x1080/?${encodeURIComponent(bgAIPrompt)}`;
+      setBgImage(mockUrl);
+      setBgType('image');
+      setIsGeneratingBg(false);
+      toast.success("Background gerado por IA (Mock)!");
+    }, 2000);
+  };
+
   const handleSave = () => {
     localStorage.setItem('theme_dark_base', bgColor);
     localStorage.setItem('theme_text_title', titleColor);
     localStorage.setItem('theme_primary_purple', primaryColor);
     localStorage.setItem('theme_dark_surface', surfaceColor);
     localStorage.setItem('theme_dark_inner', innerColor);
+    
+    localStorage.setItem('theme_bg_type', bgType);
+    if (bgType === 'image' && bgImage) {
+      localStorage.setItem('theme_bg_image', bgImage);
+      document.documentElement.style.setProperty('--theme-bg-image', `url(${bgImage})`);
+    } else {
+      localStorage.removeItem('theme_bg_image');
+      document.documentElement.style.setProperty('--theme-bg-image', 'none');
+    }
     
     document.documentElement.style.setProperty('--theme-dark-base', bgColor);
     document.documentElement.style.setProperty('--theme-text-title', titleColor);
@@ -31,9 +71,11 @@ export function SettingsView() {
     setPrimaryColor(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
     setSurfaceColor(localStorage.getItem('theme_dark_surface') || '#1A1625');
     setInnerColor(localStorage.getItem('theme_dark_inner') || '#110e19');
+    setBgType((localStorage.getItem('theme_bg_type') as any) || 'solid');
+    setBgImage(localStorage.getItem('theme_bg_image') || '');
   };
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
+    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
       <div className="mb-8">
         <h2 className="text-4xl font-bold mb-2">Configurações</h2>
         <p className="text-gray-400 text-lg">Ajuste suas preferências de geração de playlists.</p>
@@ -81,18 +123,75 @@ export function SettingsView() {
           </div>
           
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
-              <div>
-                <h4 className="font-bold">Cor de Fundo (App)</h4>
-                <p className="text-xs text-gray-400">Altere a cor de fundo geral.</p>
+            
+            <div className="p-4 bg-dark-inner rounded-lg border border-gray-700">
+              <div className="mb-4">
+                <h4 className="font-bold">Plano de Fundo</h4>
+                <p className="text-xs text-gray-400">Escolha como deseja exibir o fundo do app.</p>
               </div>
-              <input 
-                type="color" 
-                value={bgColor} 
-                onChange={(e) => setBgColor(e.target.value)}
-                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
-              />
+              
+              <div className="flex gap-4 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="bgType" value="solid" checked={bgType === 'solid'} onChange={() => setBgType('solid')} className="accent-primary-purple" />
+                  <span className="text-sm">Cor Sólida</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="bgType" value="image" checked={bgType === 'image'} onChange={() => setBgType('image')} className="accent-primary-purple" />
+                  <span className="text-sm">Enviar Imagem</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="bgType" value="ai" checked={bgType === 'ai'} onChange={() => setBgType('ai')} className="accent-primary-purple" />
+                  <span className="text-sm">Gerar com IA</span>
+                </label>
+              </div>
+
+              {bgType === 'image' && (
+                <div className="mt-4 pt-4 border-t border-gray-800">
+                  <p className="text-xs text-gray-400 mb-2">Envie uma imagem JPG ou PNG. Recomendado: 1920x1080 (a imagem se ajustará automaticamente).</p>
+                  <input 
+                    type="file" 
+                    accept="image/png, image/jpeg" 
+                    onChange={handleImageUpload}
+                    className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary-purple file:text-white hover:file:bg-opacity-90"
+                  />
+                  {bgImage && bgType === 'image' && <div className="mt-2 text-xs text-spotify-green">Imagem carregada (não esqueça de salvar).</div>}
+                </div>
+              )}
+
+              {bgType === 'ai' && (
+                <div className="mt-4 pt-4 border-t border-gray-800 flex gap-2">
+                  <input 
+                    type="text" 
+                    value={bgAIPrompt} 
+                    onChange={(e) => setBgAIPrompt(e.target.value)}
+                    placeholder="Ex: floresta escura com neon roxo..."
+                    className="flex-1 bg-dark-surface border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-purple"
+                  />
+                  <button 
+                    onClick={handleGenerateAIBg}
+                    disabled={isGeneratingBg || !bgAIPrompt}
+                    className="bg-primary-purple hover:bg-opacity-90 text-white text-sm font-bold py-2 px-4 rounded-lg disabled:bg-gray-700 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingBg ? "Gerando..." : "Gerar"}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {bgType === 'solid' && (
+              <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
+                <div>
+                  <h4 className="font-bold">Cor de Fundo (App)</h4>
+                  <p className="text-xs text-gray-400">Altere a cor de fundo geral.</p>
+                </div>
+                <input 
+                  type="color" 
+                  value={bgColor} 
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+                />
+              </div>
+            )}
 
             <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
               <div>

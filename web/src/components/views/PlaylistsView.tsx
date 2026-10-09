@@ -18,7 +18,7 @@ export function PlaylistsView({ token }: { token: string }) {
   }, [token]);
 
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
+    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
       <div className="mb-8">
         <h2 className="text-4xl font-bold mb-2">Minhas Playlists</h2>
         <p className="text-gray-400 text-lg">Todas as playlists salvas no seu Spotify.</p>

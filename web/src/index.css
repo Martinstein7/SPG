@@ -11,8 +11,16 @@
 }
 
 body {
-  background-color: var(--color-dark-base);
+  background-color: var(--theme-dark-base, #0E0B14);
+  background-image: var(--theme-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: white;
+}
+
+#root > div {
+  background-color: transparent !important;
 }
 
 h1, h2, h3, h4, h5, h6 {

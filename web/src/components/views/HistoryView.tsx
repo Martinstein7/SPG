@@ -2,7 +2,7 @@ import { History } from 'lucide-react';
 
 export function HistoryView() {
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
+    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
       <div className="mb-8">
         <h2 className="text-4xl font-bold mb-2">Histórico</h2>
         <p className="text-gray-400 text-lg">Suas playlists geradas recentemente pela IA.</p>
