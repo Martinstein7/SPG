@@ -74,7 +74,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     // 1. Pedir pro Gemini gerar uma lista de 10 a 15 músicas perfeitas pro tema
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.8-flash',
       contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
       Recomende 15 músicas perfeitamente encaixadas nesse clima. Responda apenas com os dados no formato exigido, sem textos extras.`,
       config: {
@@ -150,8 +150,14 @@ app.post('/api/generate', async (req, res) => {
     // Pronto! Devolver pro Frontend
     res.json({ success: true, url: playlistUrl, playlistId });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro na geração da playlist:", error);
+    
+    // Tratamento para API do Gemini sobrecarregada
+    if (error?.status === 503) {
+      return res.status(503).json({ error: 'A IA do Google está com alta demanda no momento. Por favor, tente novamente em alguns segundos.' });
+    }
+    
     res.status(500).json({ error: 'Falha ao processar a requisição com a IA.' });
   }
 });
