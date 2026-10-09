@@ -68,13 +68,13 @@ export function Sidebar({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
               <img 
-                src={profile.images?.[0]?.url || `https://ui-avatars.com/api/?name=${profile.display_name}&background=1DB954&color=fff`} 
-                alt={profile.display_name} 
+                src={profile.images?.[0]?.url || `https://ui-avatars.com/api/?name=${profile.display_name || 'Usuário'}&background=1DB954&color=fff`} 
+                alt={profile.display_name || 'Usuário'} 
                 className="w-full h-full object-cover" 
               />
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-bold text-white truncate">{profile.display_name}</span>
+              <span className="text-sm font-bold text-white truncate">{profile.display_name || 'Usuário'}</span>
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-spotify-green"></span> Conectado
               </span>

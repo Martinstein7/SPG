@@ -122,7 +122,7 @@ export function MainContent({ token }: { token: string }) {
       {/* Cabeçalho de Boas Vindas */}
       <div className="mb-12">
         <h2 className="text-4xl font-bold mb-2">
-          Boas-vindas{profile ? `, ${profile.display_name.split(' ')[0]}` : ''}!
+          Boas-vindas{profile?.display_name ? `, ${profile.display_name.split(' ')[0]}` : ''}!
         </h2>
         <p className="text-gray-400 text-lg">O que você quer ouvir hoje?</p>
       </div>
