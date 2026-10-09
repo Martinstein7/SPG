@@ -1,7 +1,29 @@
-import { Settings, Sliders, Sparkles, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Sliders, Sparkles, LogOut, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function SettingsView() {
+  const [bgColor, setBgColor] = useState(localStorage.getItem('theme_dark_base') || '#0E0B14');
+  const [titleColor, setTitleColor] = useState(localStorage.getItem('theme_text_title') || '#ffffff');
+  const [primaryColor, setPrimaryColor] = useState(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
+
+  const handleSave = () => {
+    localStorage.setItem('theme_dark_base', bgColor);
+    localStorage.setItem('theme_text_title', titleColor);
+    localStorage.setItem('theme_primary_purple', primaryColor);
+    
+    document.documentElement.style.setProperty('--theme-dark-base', bgColor);
+    document.documentElement.style.setProperty('--theme-text-title', titleColor);
+    document.documentElement.style.setProperty('--theme-primary-purple', primaryColor);
+    
+    toast.success("Configurações salvas com sucesso!");
+  };
+
+  const handleDiscard = () => {
+    setBgColor(localStorage.getItem('theme_dark_base') || '#0E0B14');
+    setTitleColor(localStorage.getItem('theme_text_title') || '#ffffff');
+    setPrimaryColor(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
+  };
   return (
     <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
       <div className="mb-8">
@@ -43,7 +65,56 @@ export function SettingsView() {
           </div>
         </section>
 
-        {/* Bloco 2: Integração Spotify */}
+        {/* Bloco 2: Estilo */}
+        <section className="bg-dark-surface p-6 rounded-xl border border-gray-800">
+          <div className="flex items-center gap-3 mb-6">
+            <Palette className="text-primary-purple" size={24} />
+            <h3 className="text-xl font-bold">Estilo Visual</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+              <div>
+                <h4 className="font-bold">Cor de Fundo</h4>
+                <p className="text-xs text-gray-400">Altere a cor de fundo principal do aplicativo.</p>
+              </div>
+              <input 
+                type="color" 
+                value={bgColor} 
+                onChange={(e) => setBgColor(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+              <div>
+                <h4 className="font-bold">Cor dos Títulos</h4>
+                <p className="text-xs text-gray-400">Altere a cor de títulos e textos de destaque.</p>
+              </div>
+              <input 
+                type="color" 
+                value={titleColor} 
+                onChange={(e) => setTitleColor(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+              <div>
+                <h4 className="font-bold">Cor Principal (Destaques)</h4>
+                <p className="text-xs text-gray-400">Altere a cor usada em botões e ícones (Padrão: Roxo).</p>
+              </div>
+              <input 
+                type="color" 
+                value={primaryColor} 
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Bloco 3: Integração Spotify */}
         <section className="bg-dark-surface p-6 rounded-xl border border-gray-800">
           <div className="flex items-center gap-3 mb-6">
             <Sliders className="text-spotify-green" size={24} />
@@ -64,12 +135,15 @@ export function SettingsView() {
 
         {/* Bloco de Ação */}
         <div className="pt-4 flex justify-end gap-4">
-          <button className="px-6 py-3 rounded-lg font-bold text-gray-400 hover:text-white transition-colors">
+          <button 
+            onClick={handleDiscard}
+            className="px-6 py-3 rounded-lg font-bold text-gray-400 hover:text-white transition-colors"
+          >
             Descartar
           </button>
           <button 
             className="bg-primary-purple hover:bg-opacity-90 text-white font-bold py-3 px-8 rounded-lg transition-colors"
-            onClick={() => toast.success("Configurações salvas (mockado)")}
+            onClick={handleSave}
           >
             Salvar Preferências
           </button>

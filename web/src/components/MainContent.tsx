@@ -16,6 +16,7 @@ export function MainContent({ token }: { token: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingText, setLoadingText] = useState("Pensando...");
   const [playlistError, setPlaylistError] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [currentExamples, setCurrentExamples] = useState<string[]>(DEFAULT_EXAMPLES);
   const [isLoadingExamples, setIsLoadingExamples] = useState(false);
 
@@ -112,6 +113,7 @@ export function MainContent({ token }: { token: string }) {
     }
 
     setIsGenerating(true);
+    setGenerateError(null);
     
     try {
       const response = await fetch('http://127.0.0.1:3000/api/generate', {
@@ -140,10 +142,10 @@ export function MainContent({ token }: { token: string }) {
           });
         }, 2000);
       } else {
-        toast.error("Ops, deu um erro: " + data.error, { duration: 5000 });
+        setGenerateError(data.error || "Ocorreu um erro desconhecido.");
       }
     } catch (err) {
-      toast.error("Erro de conexão com o servidor. Tente novamente mais tarde.");
+      setGenerateError("Erro de conexão com o servidor. Tente novamente mais tarde.");
     } finally {
       setIsGenerating(false);
       setLoadingText("Gerar Playlist");
@@ -183,6 +185,16 @@ export function MainContent({ token }: { token: string }) {
           </button>
         </div>
         
+        {generateError && (
+          <div className="mt-4 text-red-400 bg-[#3a1c1c] p-4 rounded-xl border border-red-900/50 flex items-start gap-3">
+            <span className="text-xl">⚠️</span>
+            <div>
+              <strong className="block mb-1">Ops, algo deu errado:</strong>
+              <p className="text-sm">{generateError}</p>
+            </div>
+          </div>
+        )}
+
         {/* Chips de Exemplo */}
         <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
           <span className="text-gray-400">Exemplos:</span>

@@ -13,6 +13,15 @@ function App() {
   const [currentView, setCurrentView] = useState<'home' | 'playlists' | 'history' | 'settings'>('home');
 
   useEffect(() => {
+    // Aplica o tema salvo no localStorage
+    const savedBgColor = localStorage.getItem('theme_dark_base');
+    const savedTitleColor = localStorage.getItem('theme_text_title');
+    const savedPrimaryColor = localStorage.getItem('theme_primary_purple');
+
+    if (savedBgColor) document.documentElement.style.setProperty('--theme-dark-base', savedBgColor);
+    if (savedTitleColor) document.documentElement.style.setProperty('--theme-text-title', savedTitleColor);
+    if (savedPrimaryColor) document.documentElement.style.setProperty('--theme-primary-purple', savedPrimaryColor);
+
     // Verifica se há token na URL (vindo do redirecionamento do backend)
     const hash = window.location.hash;
     const urlParams = new URLSearchParams(window.location.search);

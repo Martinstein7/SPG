@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-spotify-green: #1DB954;
-  --color-spotify-black: #191414;
-  --color-dark-base: #0E0B14;
-  --color-dark-surface: #1A1625;
-  --color-primary-purple: #6C5CE7;
+  --color-spotify-green: var(--theme-spotify-green, #1DB954);
+  --color-spotify-black: var(--theme-spotify-black, #191414);
+  --color-dark-base: var(--theme-dark-base, #0E0B14);
+  --color-dark-surface: var(--theme-dark-surface, #1A1625);
+  --color-primary-purple: var(--theme-primary-purple, #6C5CE7);
+  --color-text-title: var(--theme-text-title, #ffffff);
 }
 
 body {
   background-color: var(--color-dark-base);
   color: white;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--theme-text-title, #ffffff);
 }
