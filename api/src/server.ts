@@ -72,35 +72,68 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
-    // 1. Pedir pro Gemini gerar uma lista de 10 a 15 músicas perfeitas pro tema
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
-      Instruções:
-      1. Identifique se o usuário pediu uma quantidade específica de músicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 músicas.
-      2. Se o usuário não especificou uma quantidade, gere 15 músicas.
-      3. As músicas devem ser perfeitamente encaixadas no clima e tema pedidos.
-      4. Responda APENAS com o JSON.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              artist: { type: Type.STRING }
-            },
-            required: ["title", "artist"]
+    // 1. Pedir pro Gemini gerar uma lista de músicas
+    let geminiOutput = "";
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
+        Instruções:
+        1. Identifique se o usuário pediu uma quantidade específica de músicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 músicas.
+        2. Se o usuário não especificou uma quantidade, gere 15 músicas.
+        3. As músicas devem ser perfeitamente encaixadas no clima e tema pedidos.
+        4. Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                artist: { type: Type.STRING }
+              },
+              required: ["title", "artist"]
+            }
           }
         }
+      });
+      geminiOutput = response.text || "";
+    } catch (geminiError: any) {
+      console.error("Gemini falhou, iniciando plano B (OpenAI)...", geminiError.message);
+      
+      // Fallback para OpenAI
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error("Gemini falhou e a chave da OpenAI não está configurada.");
       }
-    });
+      
+      const { OpenAI } = require('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const gptResponse = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { 
+            role: "system", 
+            content: "Você é um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'."
+          },
+          { 
+            role: "user", 
+            content: `O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
+            Se ele pediu uma quantidade específica, obedeça (máximo 50). Caso contrário, gere 15 músicas.` 
+          }
+        ],
+        temperature: 0.7
+      });
+      
+      geminiOutput = gptResponse.choices[0].message.content || "";
+    }
 
-    const geminiOutput = response.text;
-    if (!geminiOutput) throw new Error("Gemini retornou vazio");
+    if (!geminiOutput) throw new Error("A IA retornou vazio");
     
-    const suggestedTracks = JSON.parse(geminiOutput);
+    // Limpar o JSON (às vezes a OpenAI devolve com markdown ```json)
+    const cleanOutput = geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    const suggestedTracks = JSON.parse(cleanOutput);
 
     // 2. Pegar o ID do usuário no Spotify
     const userProfileRes = await axios.get('https://api.spotify.com/v1/me', {
@@ -157,12 +190,11 @@ app.post('/api/generate', async (req, res) => {
   } catch (error: any) {
     console.error("Erro na geração da playlist:", error);
     
-    // Tratamento para API do Gemini sobrecarregada
-    if (error?.status === 503) {
-      return res.status(503).json({ error: 'A IA do Google está com alta demanda no momento. Por favor, tente novamente em alguns segundos.' });
+    if (error?.message?.includes("chave da OpenAI não está configurada")) {
+      return res.status(503).json({ error: 'O Gemini falhou por alta demanda e o plano B (OpenAI) está sem a chave configurada.' });
     }
     
-    res.status(500).json({ error: 'Falha ao processar a requisição com a IA.' });
+    res.status(500).json({ error: 'Falha ao processar a requisição com a IA. Tente novamente mais tarde.' });
   }
 });
 
