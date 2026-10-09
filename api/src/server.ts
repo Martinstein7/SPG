@@ -198,6 +198,54 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// Endpoint para gerar sugestões de playlists via IA
+app.get('/api/suggestions', async (req, res) => {
+  try {
+    let aiOutput = "";
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: "Gere 4 ideias criativas, diferentes e curtas (ate 5 palavras) para temas inusitados de playlists do Spotify (Ex: 'Faxina no sabado de manha', 'Chorando no banho', 'Correndo de zumbis'). Responda apenas com um JSON Array contendo 4 strings.",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        }
+      });
+      aiOutput = response.text || "";
+    } catch (geminiError) {
+      console.error("Gemini falhou ao gerar sugestoes, usando OpenAI...");
+      if (process.env.OPENAI_API_KEY) {
+        const { OpenAI } = require('openai');
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const gptResponse = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { 
+              role: "system", 
+              content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists."
+            }
+          ],
+          temperature: 0.9
+        });
+        aiOutput = gptResponse.choices[0].message.content || "";
+      } else {
+        throw new Error("Sem chaves de IA");
+      }
+    }
+    
+    const cleanOutput = aiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    const suggestions = JSON.parse(cleanOutput);
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Erro ao gerar sugestoes:", error);
+    res.json({ suggestions: ["Vampiro melancólico", "Dirigindo de madrugada", "TSL + Deftones + HIM", "Anos 2000"] });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://127.0.0.1:${PORT}`);
 });

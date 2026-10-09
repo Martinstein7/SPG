@@ -2,23 +2,11 @@ import { Search, Sparkles, Music, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
-const ALL_EXAMPLES = [
+const DEFAULT_EXAMPLES = [
   'Vampiro melancólico', 
   'Dirigindo de madrugada', 
   'TSL + Deftones + HIM', 
-  'Anos 2000', 
-  'Festa na piscina', 
-  'Chovendo lá fora', 
-  'Cyberpunk 2077 vibes', 
-  'Indie pra relaxar', 
-  'Treino pesado', 
-  'Foco nos estudos', 
-  'Kpop pra dançar', 
-  'Clássicos do Rock', 
-  'Sertanejo raiz',
-  'Jazz em Paris',
-  'Vilão da Disney',
-  'Lofi pra codar'
+  'Anos 2000'
 ];
 
 export function MainContent({ token }: { token: string }) {
@@ -28,15 +16,27 @@ export function MainContent({ token }: { token: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingText, setLoadingText] = useState("Pensando...");
   const [playlistError, setPlaylistError] = useState<string | null>(null);
-  const [currentExamples, setCurrentExamples] = useState<string[]>([]);
+  const [currentExamples, setCurrentExamples] = useState<string[]>(DEFAULT_EXAMPLES);
+  const [isLoadingExamples, setIsLoadingExamples] = useState(false);
 
-  const shuffleExamples = () => {
-    const shuffled = [...ALL_EXAMPLES].sort(() => 0.5 - Math.random());
-    setCurrentExamples(shuffled.slice(0, 4));
+  const fetchAiExamples = async () => {
+    setIsLoadingExamples(true);
+    try {
+      const response = await fetch('http://127.0.0.1:3000/api/suggestions');
+      const data = await response.json();
+      if (data.suggestions && data.suggestions.length > 0) {
+        setCurrentExamples(data.suggestions.slice(0, 4));
+      }
+    } catch (err) {
+      console.error("Erro ao buscar exemplos da IA:", err);
+      toast.error("Não foi possível gerar novas sugestões.", { id: 'sug-err' });
+    } finally {
+      setIsLoadingExamples(false);
+    }
   };
 
   useEffect(() => {
-    shuffleExamples();
+    fetchAiExamples();
   }, []);
 
   useEffect(() => {
@@ -196,11 +196,12 @@ export function MainContent({ token }: { token: string }) {
             </button>
           ))}
           <button 
-            onClick={shuffleExamples}
-            className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors ml-1"
-            title="Mostrar outros exemplos"
+            onClick={fetchAiExamples}
+            disabled={isLoadingExamples}
+            className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Gerar novas sugestões com IA"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={16} className={isLoadingExamples ? "animate-spin text-primary-purple" : ""} />
           </button>
         </div>
       </div>
