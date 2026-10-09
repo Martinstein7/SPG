@@ -17,10 +17,14 @@ function App() {
     const savedBgColor = localStorage.getItem('theme_dark_base');
     const savedTitleColor = localStorage.getItem('theme_text_title');
     const savedPrimaryColor = localStorage.getItem('theme_primary_purple');
+    const savedSurfaceColor = localStorage.getItem('theme_dark_surface');
+    const savedInnerColor = localStorage.getItem('theme_dark_inner');
 
     if (savedBgColor) document.documentElement.style.setProperty('--theme-dark-base', savedBgColor);
     if (savedTitleColor) document.documentElement.style.setProperty('--theme-text-title', savedTitleColor);
     if (savedPrimaryColor) document.documentElement.style.setProperty('--theme-primary-purple', savedPrimaryColor);
+    if (savedSurfaceColor) document.documentElement.style.setProperty('--theme-dark-surface', savedSurfaceColor);
+    if (savedInnerColor) document.documentElement.style.setProperty('--theme-dark-inner', savedInnerColor);
 
     // Verifica se há token na URL (vindo do redirecionamento do backend)
     const hash = window.location.hash;

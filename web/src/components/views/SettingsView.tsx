@@ -6,15 +6,21 @@ export function SettingsView() {
   const [bgColor, setBgColor] = useState(localStorage.getItem('theme_dark_base') || '#0E0B14');
   const [titleColor, setTitleColor] = useState(localStorage.getItem('theme_text_title') || '#ffffff');
   const [primaryColor, setPrimaryColor] = useState(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
+  const [surfaceColor, setSurfaceColor] = useState(localStorage.getItem('theme_dark_surface') || '#1A1625');
+  const [innerColor, setInnerColor] = useState(localStorage.getItem('theme_dark_inner') || '#110e19');
 
   const handleSave = () => {
     localStorage.setItem('theme_dark_base', bgColor);
     localStorage.setItem('theme_text_title', titleColor);
     localStorage.setItem('theme_primary_purple', primaryColor);
+    localStorage.setItem('theme_dark_surface', surfaceColor);
+    localStorage.setItem('theme_dark_inner', innerColor);
     
     document.documentElement.style.setProperty('--theme-dark-base', bgColor);
     document.documentElement.style.setProperty('--theme-text-title', titleColor);
     document.documentElement.style.setProperty('--theme-primary-purple', primaryColor);
+    document.documentElement.style.setProperty('--theme-dark-surface', surfaceColor);
+    document.documentElement.style.setProperty('--theme-dark-inner', innerColor);
     
     toast.success("Configurações salvas com sucesso!");
   };
@@ -23,6 +29,8 @@ export function SettingsView() {
     setBgColor(localStorage.getItem('theme_dark_base') || '#0E0B14');
     setTitleColor(localStorage.getItem('theme_text_title') || '#ffffff');
     setPrimaryColor(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
+    setSurfaceColor(localStorage.getItem('theme_dark_surface') || '#1A1625');
+    setInnerColor(localStorage.getItem('theme_dark_inner') || '#110e19');
   };
   return (
     <main className="flex-1 h-full overflow-y-auto p-10 bg-dark-base text-white">
@@ -45,7 +53,7 @@ export function SettingsView() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Tamanho Padrão da Playlist
               </label>
-              <select className="w-full bg-[#110e19] border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
+              <select className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
                 <option value="10">Curta (10 músicas)</option>
                 <option value="15" selected>Ideal (15 músicas)</option>
                 <option value="30">Longa (30 músicas)</option>
@@ -56,7 +64,7 @@ export function SettingsView() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Nível de Obscuridade
               </label>
-              <select className="w-full bg-[#110e19] border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
+              <select className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
                 <option value="hits">Apenas Hits (Músicas Famosas)</option>
                 <option value="balanced" selected>Equilibrado (Famosas e Desconhecidas)</option>
                 <option value="underground">Underground (Descobrir artistas novos)</option>
@@ -73,10 +81,10 @@ export function SettingsView() {
           </div>
           
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
               <div>
-                <h4 className="font-bold">Cor de Fundo</h4>
-                <p className="text-xs text-gray-400">Altere a cor de fundo principal do aplicativo.</p>
+                <h4 className="font-bold">Cor de Fundo (App)</h4>
+                <p className="text-xs text-gray-400">Altere a cor de fundo geral.</p>
               </div>
               <input 
                 type="color" 
@@ -86,7 +94,33 @@ export function SettingsView() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
+              <div>
+                <h4 className="font-bold">Cor dos Painéis</h4>
+                <p className="text-xs text-gray-400">Altere a cor externa dos blocos (mais clara).</p>
+              </div>
+              <input 
+                type="color" 
+                value={surfaceColor} 
+                onChange={(e) => setSurfaceColor(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
+              <div>
+                <h4 className="font-bold">Cor Interna (Itens)</h4>
+                <p className="text-xs text-gray-400">Altere a cor interna de cada configuração.</p>
+              </div>
+              <input 
+                type="color" 
+                value={innerColor} 
+                onChange={(e) => setInnerColor(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
               <div>
                 <h4 className="font-bold">Cor dos Títulos</h4>
                 <p className="text-xs text-gray-400">Altere a cor de títulos e textos de destaque.</p>
@@ -99,7 +133,7 @@ export function SettingsView() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
               <div>
                 <h4 className="font-bold">Cor Principal (Destaques)</h4>
                 <p className="text-xs text-gray-400">Altere a cor usada em botões e ícones (Padrão: Roxo).</p>
@@ -121,7 +155,7 @@ export function SettingsView() {
             <h3 className="text-xl font-bold">Avançado</h3>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-[#110e19] rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between p-4 bg-dark-inner rounded-lg border border-gray-700">
             <div>
               <h4 className="font-bold">Playlists Públicas</h4>
               <p className="text-xs text-gray-400">As playlists geradas ficarão visíveis no seu perfil do Spotify.</p>

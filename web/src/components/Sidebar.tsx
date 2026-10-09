@@ -64,7 +64,7 @@ export function Sidebar({
       </nav>
 
       {profile && (
-        <div className="mt-auto flex items-center justify-between bg-[#110e19] p-4 rounded-xl border border-gray-800">
+        <div className="mt-auto flex items-center justify-between bg-dark-inner p-4 rounded-xl border border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
               <img 

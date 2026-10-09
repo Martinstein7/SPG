@@ -5,6 +5,7 @@
   --color-spotify-black: var(--theme-spotify-black, #191414);
   --color-dark-base: var(--theme-dark-base, #0E0B14);
   --color-dark-surface: var(--theme-dark-surface, #1A1625);
+  --color-dark-inner: var(--theme-dark-inner, #110e19);
   --color-primary-purple: var(--theme-primary-purple, #6C5CE7);
   --color-text-title: var(--theme-text-title, #ffffff);
 }
