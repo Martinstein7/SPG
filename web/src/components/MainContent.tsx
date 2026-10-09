@@ -6,7 +6,36 @@ export function MainContent({ token }: { token: string }) {
   const [profile, setProfile] = useState<any>(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingText, setLoadingText] = useState("Pensando...");
   const [playlistError, setPlaylistError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timeout1: NodeJS.Timeout;
+    let timeout2: NodeJS.Timeout;
+    let timeout3: NodeJS.Timeout;
+
+    if (isGenerating) {
+      setLoadingText("Interpretando seu pedido com IA...");
+      
+      timeout1 = setTimeout(() => {
+        setLoadingText("Escolhendo as melhores músicas...");
+      }, 4000);
+
+      timeout2 = setTimeout(() => {
+        setLoadingText("Buscando faixas no Spotify...");
+      }, 8000);
+
+      timeout3 = setTimeout(() => {
+        setLoadingText("Salvando a playlist na sua conta... Pode demorar se tiver muitas músicas!");
+      }, 14000);
+    }
+
+    return () => {
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+    };
+  }, [isGenerating]);
 
   useEffect(() => {
     if (token) {
@@ -39,6 +68,16 @@ export function MainContent({ token }: { token: string }) {
 
   const handleGenerate = async () => {
     if(!prompt) return;
+    
+    // Pequena verificação na interface para avisar o usuário
+    const numberMatch = prompt.match(/\b(\d+)\b/);
+    if (numberMatch) {
+      const num = parseInt(numberMatch[1], 10);
+      if (num > 50 && num !== 80 && num !== 90 && num !== 2000) { // Ignorando anos comuns
+        alert(`Você pediu ${num} músicas, mas para evitar bloqueios do Spotify e lentidão, eu vou limitar as 50 melhores por enquanto! No futuro, você poderá adicionar mais músicas direto na playlist.`);
+      }
+    }
+
     setIsGenerating(true);
     
     try {
@@ -74,6 +113,7 @@ export function MainContent({ token }: { token: string }) {
       alert("Erro de conexão com o servidor.");
     } finally {
       setIsGenerating(false);
+      setLoadingText("Gerar Playlist");
     }
   };
 
@@ -97,16 +137,16 @@ export function MainContent({ token }: { token: string }) {
             type="text" 
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="w-full bg-dark-surface border border-gray-700 text-white rounded-xl py-4 pl-12 pr-44 focus:outline-none focus:border-primary-purple focus:ring-1 focus:ring-primary-purple transition-all text-lg"
+            className="w-full bg-dark-surface border border-gray-700 text-white rounded-xl py-4 pl-12 pr-64 focus:outline-none focus:border-primary-purple focus:ring-1 focus:ring-primary-purple transition-all text-lg"
             placeholder="Ex: Crie uma playlist para um vampiro melancólico..."
           />
           <button 
             onClick={handleGenerate}
             disabled={isGenerating || !prompt}
-            className={`absolute inset-y-2 right-2 bg-primary-purple hover:bg-opacity-90 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 transition-all`}
+            className={`absolute inset-y-2 right-2 bg-primary-purple hover:bg-opacity-90 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 transition-all min-w-[200px] justify-center`}
           >
             <Sparkles size={18} className={isGenerating ? "animate-pulse" : ""} />
-            {isGenerating ? "Pensando..." : "Gerar Playlist"}
+            <span className="truncate max-w-[200px]">{isGenerating ? loadingText : "Gerar Playlist"}</span>
           </button>
         </div>
         

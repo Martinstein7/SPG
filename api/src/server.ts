@@ -76,7 +76,11 @@ app.post('/api/generate', async (req, res) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
-      Recomende 15 músicas perfeitamente encaixadas nesse clima. Responda apenas com os dados no formato exigido, sem textos extras.`,
+      Instruções:
+      1. Identifique se o usuário pediu uma quantidade específica de músicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 músicas.
+      2. Se o usuário não especificou uma quantidade, gere 15 músicas.
+      3. As músicas devem ser perfeitamente encaixadas no clima e tema pedidos.
+      4. Responda APENAS com o JSON.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
