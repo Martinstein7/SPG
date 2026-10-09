@@ -1,6 +1,25 @@
-import { Search, Sparkles, Music } from 'lucide-react';
+import { Search, Sparkles, Music, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+
+const ALL_EXAMPLES = [
+  'Vampiro melancólico', 
+  'Dirigindo de madrugada', 
+  'TSL + Deftones + HIM', 
+  'Anos 2000', 
+  'Festa na piscina', 
+  'Chovendo lá fora', 
+  'Cyberpunk 2077 vibes', 
+  'Indie pra relaxar', 
+  'Treino pesado', 
+  'Foco nos estudos', 
+  'Kpop pra dançar', 
+  'Clássicos do Rock', 
+  'Sertanejo raiz',
+  'Jazz em Paris',
+  'Vilão da Disney',
+  'Lofi pra codar'
+];
 
 export function MainContent({ token }: { token: string }) {
   const [playlists, setPlaylists] = useState<any[]>([]);
@@ -9,6 +28,16 @@ export function MainContent({ token }: { token: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingText, setLoadingText] = useState("Pensando...");
   const [playlistError, setPlaylistError] = useState<string | null>(null);
+  const [currentExamples, setCurrentExamples] = useState<string[]>([]);
+
+  const shuffleExamples = () => {
+    const shuffled = [...ALL_EXAMPLES].sort(() => 0.5 - Math.random());
+    setCurrentExamples(shuffled.slice(0, 4));
+  };
+
+  useEffect(() => {
+    shuffleExamples();
+  }, []);
 
   useEffect(() => {
     let timeout1: NodeJS.Timeout;
@@ -157,7 +186,7 @@ export function MainContent({ token }: { token: string }) {
         {/* Chips de Exemplo */}
         <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
           <span className="text-gray-400">Exemplos:</span>
-          {['Vampiro', 'Dirigindo de madrugada', 'TSL + Deftones + HIM', 'Anos 2000'].map((ex) => (
+          {currentExamples.map((ex) => (
             <button 
               key={ex} 
               onClick={() => setPrompt(ex)}
@@ -166,6 +195,13 @@ export function MainContent({ token }: { token: string }) {
               {ex}
             </button>
           ))}
+          <button 
+            onClick={shuffleExamples}
+            className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors ml-1"
+            title="Mostrar outros exemplos"
+          >
+            <RefreshCw size={16} />
+          </button>
         </div>
       </div>
 
