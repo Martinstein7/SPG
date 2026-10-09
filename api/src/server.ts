@@ -206,7 +206,7 @@ app.get('/api/suggestions', async (req, res) => {
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: "Gere 4 ideias criativas, diferentes e curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) para temas inusitados de playlists do Spotify (Ex: 'Faxina no sabado de manha', 'Chorando no banho', 'Correndo de zumbis'). Responda apenas com um JSON Array contendo 4 strings.",
+        contents: "Você é um curador musical. Gere 4 ideias curtas (de 2 a 6 palavras) para temas de playlists do Spotify EM PORTUGUÊS DO BRASIL (PT-BR). Varie os temas entre: 1. Gêneros ou subgêneros (Ex: 'Indie Rock', 'Synthwave', 'Sertanejo Raiz'); 2. Épocas/Décadas (Ex: 'Rock Anos 2000', 'Flashback Anos 80'); 3. Misturas de artistas (Ex: 'TSL + Deftones + HIM', 'The Weeknd e similares'); 4. Situações reais (Ex: 'Dirigindo de madrugada', 'Treino pesado'). EVITE frases muito poéticas, abstratas ou sem nexo (como 'Céu noturno de neon' ou 'Sons da biblioteca antiga'). Responda APENAS com um JSON Array contendo as 4 strings, sem formatação markdown ou crases.",
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -226,7 +226,7 @@ app.get('/api/suggestions', async (req, res) => {
         const groqResponse = await groq.chat.completions.create({
           model: "openai/gpt-oss-20b",
           messages: [
-            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
+            { role: "system", content: "Você é um curador musical. Gere 4 ideias curtas (de 2 a 6 palavras) para temas de playlists do Spotify EM PORTUGUÊS DO BRASIL (PT-BR). Varie os temas entre: 1. Gêneros ou subgêneros (Ex: 'Indie Rock', 'Synthwave', 'Sertanejo Raiz'); 2. Épocas/Décadas (Ex: 'Rock Anos 2000', 'Flashback Anos 80'); 3. Misturas de artistas (Ex: 'TSL + Deftones + HIM', 'The Weeknd e similares'); 4. Situações reais (Ex: 'Dirigindo de madrugada', 'Treino pesado'). EVITE frases muito poéticas, abstratas ou sem nexo (como 'Céu noturno de neon' ou 'Sons da biblioteca antiga'). Responda APENAS com um JSON Array contendo as 4 strings, sem formatação markdown ou crases." }
           ],
           temperature: 0.9
         });
@@ -239,7 +239,7 @@ app.get('/api/suggestions', async (req, res) => {
         const gptResponse = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
-            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
+            { role: "system", content: "Você é um curador musical. Gere 4 ideias curtas (de 2 a 6 palavras) para temas de playlists do Spotify EM PORTUGUÊS DO BRASIL (PT-BR). Varie os temas entre: 1. Gêneros ou subgêneros (Ex: 'Indie Rock', 'Synthwave', 'Sertanejo Raiz'); 2. Épocas/Décadas (Ex: 'Rock Anos 2000', 'Flashback Anos 80'); 3. Misturas de artistas (Ex: 'TSL + Deftones + HIM', 'The Weeknd e similares'); 4. Situações reais (Ex: 'Dirigindo de madrugada', 'Treino pesado'). EVITE frases muito poéticas, abstratas ou sem nexo (como 'Céu noturno de neon' ou 'Sons da biblioteca antiga'). Responda APENAS com um JSON Array contendo as 4 strings, sem formatação markdown ou crases." }
           ],
           temperature: 0.9
         });
