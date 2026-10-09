@@ -1,4 +1,5 @@
 import { Settings, Sliders, Sparkles, LogOut } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function SettingsView() {
   return (
@@ -68,7 +69,7 @@ export function SettingsView() {
           </button>
           <button 
             className="bg-primary-purple hover:bg-opacity-90 text-white font-bold py-3 px-8 rounded-lg transition-colors"
-            onClick={() => alert("As configurações serão salvas e usadas na próxima geração!")}
+            onClick={() => toast.success("Configurações salvas (mockado)")}
           >
             Salvar Preferências
           </button>

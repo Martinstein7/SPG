@@ -1,5 +1,6 @@
 import { Search, Sparkles, Music } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 export function MainContent({ token }: { token: string }) {
   const [playlists, setPlaylists] = useState<any[]>([]);
@@ -74,7 +75,10 @@ export function MainContent({ token }: { token: string }) {
     if (numberMatch) {
       const num = parseInt(numberMatch[1], 10);
       if (num > 50 && num !== 80 && num !== 90 && num !== 2000) { // Ignorando anos comuns
-        alert(`Você pediu ${num} músicas, mas para evitar bloqueios do Spotify e lentidão, eu vou limitar as 50 melhores por enquanto! No futuro, você poderá adicionar mais músicas direto na playlist.`);
+        toast(`Você pediu ${num} músicas, mas limitei para as 50 melhores. Adicione mais depois!`, {
+          icon: '⚠️',
+          duration: 6000
+        });
       }
     }
 
@@ -92,7 +96,7 @@ export function MainContent({ token }: { token: string }) {
       const data = await response.json();
       
       if (data.success && data.url) {
-        alert("Playlist criada com sucesso no seu Spotify!");
+        toast.success("Playlist criada com sucesso no seu Spotify!");
         window.open(data.url, "_blank");
         setPrompt(""); // Limpa o input
         
@@ -107,10 +111,10 @@ export function MainContent({ token }: { token: string }) {
           });
         }, 2000);
       } else {
-        alert("Ops, deu um erro: " + data.error);
+        toast.error("Ops, deu um erro: " + data.error, { duration: 5000 });
       }
     } catch (err) {
-      alert("Erro de conexão com o servidor.");
+      toast.error("Erro de conexão com o servidor. Tente novamente mais tarde.");
     } finally {
       setIsGenerating(false);
       setLoadingText("Gerar Playlist");

@@ -5,6 +5,7 @@ import { PlaylistsView } from './components/views/PlaylistsView';
 import { HistoryView } from './components/views/HistoryView';
 import { SettingsView } from './components/views/SettingsView';
 import { ListMusic } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 function App() {
@@ -63,6 +64,28 @@ function App() {
 
   return (
     <div className="flex h-screen bg-dark-base font-sans overflow-hidden">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1a1625',
+            color: '#fff',
+            border: '1px solid #332d4a',
+          },
+          success: {
+            iconTheme: {
+              primary: '#1DB954',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
       {currentView === 'home' && <MainContent token={token} />}
       {currentView === 'playlists' && <PlaylistsView token={token} />}
