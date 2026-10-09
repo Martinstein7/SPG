@@ -17,7 +17,7 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REDIRECT_URI = 'http://127.0.0.1:3000/api/auth/callback';
 
-// Instância do Gemini
+// Instancia do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 app.get('/', (req, res) => {
@@ -37,7 +37,7 @@ app.get('/api/auth/login', (req, res) => {
   res.redirect(`https://accounts.spotify.com/authorize?${authQueryParameters.toString()}`);
 });
 
-// Callback do Spotify após o login
+// Callback do Spotify apos o login
 app.get('/api/auth/callback', async (req, res) => {
   const code = req.query.code as string;
 
@@ -58,7 +58,7 @@ app.get('/api/auth/callback', async (req, res) => {
     // Redireciona de volta para o frontend com os tokens na URL
     res.redirect(`http://localhost:5173/?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`);
   } catch (error) {
-    console.error('Erro na autenticação do Spotify:', error);
+    console.error('Erro na autenticacao do Spotify:', error);
     res.redirect(`http://localhost:5173/?error=auth_failed`);
   }
 });
@@ -72,16 +72,16 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
-    // 1. Pedir pro Gemini gerar uma lista de músicas
+    // 1. Pedir pro Gemini gerar uma lista de musicas
     let geminiOutput = "";
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Você é um curador musical especialista. O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
-        Instruções:
-        1. Identifique se o usuário pediu uma quantidade específica de músicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 músicas.
-        2. Se o usuário não especificou uma quantidade, gere 15 músicas.
-        3. As músicas devem ser perfeitamente encaixadas no clima e tema pedidos.
+        contents: `Voce e um curador musical especialista. O usuario pediu uma playlist com a seguinte descricao: "${prompt}". 
+        Instrucoes:
+        1. Identifique se o usuario pediu uma quantidade especifica de musicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 musicas.
+        2. Se o usuario nao especificou uma quantidade, gere 15 musicas.
+        3. As musicas devem ser perfeitamente encaixadas no clima e tema pedidos.
         4. Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
         config: {
           responseMimeType: "application/json",
@@ -100,48 +100,50 @@ app.post('/api/generate', async (req, res) => {
       });
       geminiOutput = response.text || "";
     } catch (geminiError: any) {
-      console.error("Gemini falhou, iniciando plano B (OpenAI)...", geminiError.message);
-      
-      // Fallback para OpenAI
-      if (!process.env.OPENAI_API_KEY) {
-        throw new Error("Gemini falhou e a chave da OpenAI não está configurada.");
+      console.error("Gemini falhou, iniciando plano B (Groq)...", geminiError.message);
+      try {
+        if (!process.env.GROQ_API_KEY) throw new Error("Sem chave Groq");
+        const { OpenAI } = require('openai');
+        const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+        const groqResponse = await groq.chat.completions.create({
+          model: "openai/gpt-oss-20b",
+          messages: [
+            { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
+            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
+          ],
+          temperature: 0.7
+        });
+        geminiOutput = groqResponse.choices[0].message.content || "";
+      } catch (groqError: any) {
+        console.error("Groq falhou, iniciando plano C (OpenAI)...", groqError.message);
+        if (!process.env.OPENAI_API_KEY) throw new Error("Todas IAs falharam.");
+        const { OpenAI } = require('openai');
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const gptResponse = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
+            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
+          ],
+          temperature: 0.7
+        });
+        geminiOutput = gptResponse.choices[0].message.content || "";
       }
-      
-      const { OpenAI } = require('openai');
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const gptResponse = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { 
-            role: "system", 
-            content: "Você é um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'."
-          },
-          { 
-            role: "user", 
-            content: `O usuário pediu uma playlist com a seguinte descrição: "${prompt}". 
-            Se ele pediu uma quantidade específica, obedeça (máximo 50). Caso contrário, gere 15 músicas.` 
-          }
-        ],
-        temperature: 0.7
-      });
-      
-      geminiOutput = gptResponse.choices[0].message.content || "";
     }
 
     if (!geminiOutput) throw new Error("A IA retornou vazio");
     
-    // Limpar o JSON (às vezes a OpenAI devolve com markdown ```json)
+    // Limpar o JSON
     const cleanOutput = geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
     const suggestedTracks = JSON.parse(cleanOutput);
 
-    // 2. Pegar o ID do usuário no Spotify
+    // 2. Pegar o ID do usuario no Spotify
     const userProfileRes = await axios.get('https://api.spotify.com/v1/me', {
       headers: { Authorization: `Bearer ${token}` }
     });
     const userId = userProfileRes.data.id;
 
-    // 3. Buscar as URIs das músicas no Spotify
+    // 3. Buscar as URIs das musicas no Spotify
     const trackUris: string[] = [];
     for (const track of suggestedTracks) {
       const q = encodeURIComponent(`track:${track.title} artist:${track.artist}`);
@@ -154,15 +156,15 @@ app.post('/api/generate', async (req, res) => {
           trackUris.push(searchRes.data.tracks.items[0].uri);
         }
       } catch (e) {
-        console.error(`Musica não encontrada: ${track.title}`);
+        console.error(`Musica nao encontrada: ${track.title}`);
       }
     }
 
     if (trackUris.length === 0) {
-      return res.status(400).json({ error: 'Não foi possível encontrar músicas para essa vibe no Spotify.' });
+      return res.status(400).json({ error: 'Nao foi possivel encontrar musicas para essa vibe no Spotify.' });
     }
 
-    // 4. Criar a Playlist no Spotify do Usuário
+    // 4. Criar a Playlist no Spotify do Usuario
     let playlistName = prompt.substring(0, 50); // Fallback do nome
     if (playlistName.length === 50) playlistName += '...';
 
@@ -177,7 +179,7 @@ app.post('/api/generate', async (req, res) => {
     const playlistId = createPlaylistRes.data.id;
     const playlistUrl = createPlaylistRes.data.external_urls.spotify;
 
-    // 5. Adicionar as músicas na playlist
+    // 5. Adicionar as musicas na playlist
     await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
       uris: trackUris
     }, {
@@ -188,17 +190,15 @@ app.post('/api/generate', async (req, res) => {
     res.json({ success: true, url: playlistUrl, playlistId });
 
   } catch (error: any) {
-    console.error("Erro na geração da playlist:", error);
-    
-    if (error?.message?.includes("chave da OpenAI não está configurada")) {
-      return res.status(503).json({ error: 'O Gemini falhou por alta demanda e o plano B (OpenAI) está sem a chave configurada.' });
+    console.error("Erro na geracao da playlist:", error);
+    if (error?.message?.includes("Todas IAs falharam")) {
+      return res.status(503).json({ error: 'O Gemini falhou por alta demanda e as IAs de fallback (Groq/OpenAI) nao estao configuradas ou sem limite.' });
     }
-    
-    res.status(500).json({ error: 'Falha ao processar a requisição com a IA. Tente novamente mais tarde.' });
+    res.status(500).json({ error: 'Falha ao processar a requisicao com a IA. Tente novamente mais tarde.' });
   }
 });
 
-// Endpoint para gerar sugestões de playlists via IA
+// Endpoint para gerar sugestoes de playlists via IA
 app.get('/api/suggestions', async (req, res) => {
   try {
     let aiOutput = "";
@@ -216,24 +216,34 @@ app.get('/api/suggestions', async (req, res) => {
         }
       });
       aiOutput = response.text || "";
-    } catch (geminiError) {
-      console.error("Gemini falhou ao gerar sugestoes, usando OpenAI...");
-      if (process.env.OPENAI_API_KEY) {
+    } catch (geminiError: any) {
+      console.error("Gemini falhou ao gerar sugestoes:", geminiError.message);
+      console.error("Tentando com Groq...");
+      try {
+        if (!process.env.GROQ_API_KEY) throw new Error("Sem chave Groq");
+        const { OpenAI } = require('openai');
+        const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+        const groqResponse = await groq.chat.completions.create({
+          model: "openai/gpt-oss-20b",
+          messages: [
+            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
+          ],
+          temperature: 0.9
+        });
+        aiOutput = groqResponse.choices[0].message.content || "";
+      } catch (groqError: any) {
+        console.error("Groq falhou, tentando OpenAI...", groqError.message);
+        if (!process.env.OPENAI_API_KEY) throw new Error("Sem chaves de IA");
         const { OpenAI } = require('openai');
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         const gptResponse = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
-            { 
-              role: "system", 
-              content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists."
-            }
+            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
           ],
           temperature: 0.9
         });
         aiOutput = gptResponse.choices[0].message.content || "";
-      } else {
-        throw new Error("Sem chaves de IA");
       }
     }
     
