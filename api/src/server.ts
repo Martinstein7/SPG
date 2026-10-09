@@ -106,7 +106,7 @@ app.post('/api/generate', async (req, res) => {
         const { OpenAI } = require('openai');
         const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
         const groqResponse = await groq.chat.completions.create({
-          model: "openai/gpt-oss-20b",
+          model: "llama-3.1-8b-instant",
           messages: [
             { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
             { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
@@ -224,7 +224,7 @@ app.get('/api/suggestions', async (req, res) => {
         const { OpenAI } = require('openai');
         const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
         const groqResponse = await groq.chat.completions.create({
-          model: "openai/gpt-oss-20b",
+          model: "llama-3.1-8b-instant",
           messages: [
             { role: "system", content: "Você é um curador musical. Gere 4 ideias curtas (de 2 a 6 palavras) para temas de playlists do Spotify EM PORTUGUÊS DO BRASIL (PT-BR). Varie os temas entre: 1. Gêneros ou subgêneros (Ex: 'Indie Rock', 'Synthwave', 'Sertanejo Raiz'); 2. Épocas/Décadas (Ex: 'Rock Anos 2000', 'Flashback Anos 80'); 3. Misturas de artistas (Ex: 'TSL + Deftones + HIM', 'The Weeknd e similares'); 4. Situações reais (Ex: 'Dirigindo de madrugada', 'Treino pesado'). EVITE frases muito poéticas, abstratas ou sem nexo (como 'Céu noturno de neon' ou 'Sons da biblioteca antiga'). Responda APENAS com um JSON Array contendo as 4 strings, sem formatação markdown ou crases." }
           ],
