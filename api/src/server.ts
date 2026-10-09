@@ -206,7 +206,7 @@ app.get('/api/suggestions', async (req, res) => {
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: "Gere 4 ideias criativas, diferentes e curtas (ate 5 palavras) para temas inusitados de playlists do Spotify (Ex: 'Faxina no sabado de manha', 'Chorando no banho', 'Correndo de zumbis'). Responda apenas com um JSON Array contendo 4 strings.",
+        contents: "Gere 4 ideias criativas, diferentes e curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) para temas inusitados de playlists do Spotify (Ex: 'Faxina no sabado de manha', 'Chorando no banho', 'Correndo de zumbis'). Responda apenas com um JSON Array contendo 4 strings.",
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -226,7 +226,7 @@ app.get('/api/suggestions', async (req, res) => {
         const groqResponse = await groq.chat.completions.create({
           model: "openai/gpt-oss-20b",
           messages: [
-            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
+            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
           ],
           temperature: 0.9
         });
@@ -239,7 +239,7 @@ app.get('/api/suggestions', async (req, res) => {
         const gptResponse = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
-            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
+            { role: "system", content: "Voce e um curador musical. Responda APENAS com um JSON Array contendo 4 strings curtas (ate 5 palavras) EM PORTUGUES DO BRASIL (PT-BR) com ideias de temas inusitados e criativos para playlists. Sem markdown." }
           ],
           temperature: 0.9
         });
