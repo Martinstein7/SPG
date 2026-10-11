@@ -103,7 +103,7 @@ function App() {
       <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
       {currentView === 'home' && <MainContent token={token} />}
       {currentView === 'playlists' && <PlaylistsView token={token} />}
-      {currentView === 'history' && <HistoryView />}
+      {currentView === 'history' && <HistoryView onNavigateHome={() => setCurrentView('home')} />}
       {currentView === 'settings' && <SettingsView />}
     </div>
   );

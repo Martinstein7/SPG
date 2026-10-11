@@ -132,6 +132,23 @@ export function MainContent({ token }: { token: string }) {
       if (data.success && data.url) {
         toast.success("Playlist criada com sucesso no seu Spotify!");
         window.open(data.url, "_blank");
+
+        // Salvar no Histórico local
+        try {
+          const historyItem = {
+            id: data.playlistId || Date.now().toString(),
+            name: data.playlistName || `SPG: ${prompt}`,
+            prompt: prompt,
+            url: data.url,
+            trackCount: data.trackCount || trackCount,
+            createdAt: new Date().toISOString()
+          };
+          const prevHistory = JSON.parse(localStorage.getItem('spg_history') || '[]');
+          localStorage.setItem('spg_history', JSON.stringify([historyItem, ...prevHistory]));
+        } catch (e) {
+          console.error("Erro ao registrar no histórico:", e);
+        }
+
         setPrompt(""); // Limpa o input
         
         // Atualiza a lista de playlists após 2 segundos pra dar tempo do Spotify processar

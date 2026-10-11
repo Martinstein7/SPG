@@ -182,7 +182,7 @@ app.post('/api/generate', async (req, res) => {
     });
 
     // Pronto! Devolver pro Frontend
-    res.json({ success: true, url: playlistUrl, playlistId });
+    res.json({ success: true, url: playlistUrl, playlistId, playlistName: `SPG: ${playlistName}`, trackCount: trackUris.length });
 
   } catch (error: any) {
     console.error("Erro na geracao da playlist:", error.response?.data || error.message || error);
