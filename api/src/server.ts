@@ -24,6 +24,7 @@ app.get('/', (req, res) => {
   res.send('SPG Backend is running!');
 });
 
+
 // Endpoint para iniciar o login com o Spotify
 app.get('/api/auth/login', (req, res) => {
   const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
@@ -329,23 +330,28 @@ REGRAS OBRIGATÓRIAS E CRÍTICAS:
     } catch (geminiError: any) {
       console.error("Gemini falhou na adição, usando Groq...", geminiError.message);
       if (process.env.GROQ_API_KEY) {
-        const { OpenAI } = require('openai');
-        const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
-        const groqResponse = await groq.chat.completions.create({
-          model: "openai/gpt-oss-20b",
-          messages: [
-            { role: "system", content: "Você é um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown ou explicações." },
-            { role: "user", content: aiPromptInstructions }
-          ],
-          temperature: 0.7
-        });
-        geminiOutput = groqResponse.choices[0].message.content || "";
+        try {
+          const { OpenAI } = require('openai');
+          const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+          const groqResponse = await groq.chat.completions.create({
+            model: "openai/gpt-oss-20b",
+            messages: [
+              { role: "system", content: "Você é um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown ou explicações." },
+              { role: "user", content: aiPromptInstructions }
+            ],
+            temperature: 0.7
+          });
+          geminiOutput = groqResponse.choices[0]?.message?.content || "";
+        } catch (groqErr: any) {
+          console.error("Groq falhou na adição:", groqErr.message);
+        }
       }
     }
 
     if (!geminiOutput) throw new Error("A IA não retornou faixas");
 
-    const cleanOutput = geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = geminiOutput.match(/\[[\s\S]*\]/);
+    const cleanOutput = jsonMatch ? jsonMatch[0] : geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
     const suggestedTracks = JSON.parse(cleanOutput);
 
     // Buscar URIs no Spotify

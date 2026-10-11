@@ -1,6 +1,7 @@
 import { Search, Sparkles, Music, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../utils/spotifyPlaylists';
 
 const DEFAULT_EXAMPLES = [
   'Vampiro melancólico', 
@@ -71,37 +72,37 @@ export function MainContent({ token }: { token: string }) {
     };
   }, [isGenerating]);
 
-  useEffect(() => {
-    if (token) {
-      Promise.all([
-        fetch('https://api.spotify.com/v1/me', {
+  const loadPlaylists = async (userProf?: any) => {
+    if (!token) return;
+    try {
+      let activeProf = userProf || profile;
+      if (!activeProf) {
+        activeProf = await fetch('https://api.spotify.com/v1/me', {
           headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.json()),
-        fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.json())
-      ])
-      .then(([userProfile, playlistData]) => {
-        setProfile(userProfile);
-        if (playlistData.items) {
-          const editable = playlistData.items.filter((pl: any) =>
-            pl.collaborative || pl.owner?.id === userProfile.id
-          );
-          setPlaylists(editable);
-          if (editable.length === 0) {
-            setPlaylistError("Você ainda não possui playlists próprias ou colaborativas criadas.");
-          } else {
-            setPlaylistError(null);
-          }
-        } else if (playlistData.error) {
-          setPlaylistError(playlistData.error.message);
-        }
-      })
-      .catch(err => {
-        console.error("Erro ao carregar dados do usuário:", err);
-        setPlaylistError("Erro ao carregar playlists do Spotify.");
+        }).then((res) => res.json());
+        setProfile(activeProf);
+      }
+
+      const userPlaylists = await fetchAllUserPlaylists(token, activeProf);
+      setPlaylists(userPlaylists);
+      if (userPlaylists.length === 0) {
+        setPlaylistError("Você ainda não possui playlists próprias ou colaborativas criadas.");
+      } else {
+        setPlaylistError(null);
+      }
+
+      // Em segundo plano, busca a quantidade real de faixas caso o Spotify retorne 0
+      enrichPlaylistTrackCounts(userPlaylists, token, (updatedList) => {
+        setPlaylists(updatedList);
       });
+    } catch (err) {
+      console.error("Erro ao carregar dados do usuário:", err);
+      setPlaylistError("Erro ao carregar playlists do Spotify.");
     }
+  };
+
+  useEffect(() => {
+    loadPlaylists();
   }, [token]);
 
   const handleGenerate = async () => {
@@ -157,13 +158,7 @@ export function MainContent({ token }: { token: string }) {
         
         // Atualiza a lista de playlists após 2 segundos pra dar tempo do Spotify processar
         setTimeout(() => {
-          fetch('https://api.spotify.com/v1/me/playlists?limit=10', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          .then(res => res.json())
-          .then(data => {
-            if(data.items) setPlaylists(data.items);
-          });
+          loadPlaylists();
         }, 2000);
       } else {
         setGenerateError(data.error || "Ocorreu um erro desconhecido.");
@@ -293,7 +288,7 @@ export function MainContent({ token }: { token: string }) {
                   )}
                 </div>
                 <h4 className="font-bold text-white mb-1 truncate">{pl.name || 'Sem nome'}</h4>
-                <p className="text-xs text-gray-400">{pl.tracks?.total || 0} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
+                <p className="text-xs text-gray-400">{getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
               </a>
             ))}
           </div>

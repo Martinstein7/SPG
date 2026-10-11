@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Music, Sparkles, Plus, ExternalLink, X, Search, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../../utils/spotifyPlaylists';
 
 export function PlaylistsView({ token }: { token: string }) {
   const [playlists, setPlaylists] = useState<any[]>([]);
@@ -20,27 +21,26 @@ export function PlaylistsView({ token }: { token: string }) {
   const [isSearching, setIsSearching] = useState(false);
   const [addingTrackUri, setAddingTrackUri] = useState<string | null>(null);
 
-  // Carregar apenas playlists controladas ou colaborativas pelo usuário
-  const fetchPlaylists = () => {
+  // Carregar todas as playlists paginadas e enriquecer contagem de músicas
+  const fetchPlaylists = async () => {
     setLoading(true);
-    Promise.all([
-      fetch('https://api.spotify.com/v1/me', {
+    try {
+      const userProfile = await fetch('https://api.spotify.com/v1/me', {
         headers: { Authorization: `Bearer ${token}` }
-      }).then((res) => res.json()),
-      fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then((res) => res.json())
-    ])
-      .then(([userProfile, data]) => {
-        if (data.items) {
-          const editable = data.items.filter((pl: any) =>
-            pl.collaborative || pl.owner?.id === userProfile.id
-          );
-          setPlaylists(editable);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }).then((res) => res.json());
+
+      const userPlaylists = await fetchAllUserPlaylists(token, userProfile);
+      setPlaylists(userPlaylists);
+      setLoading(false);
+
+      // Em segundo plano, busca a quantidade real de faixas caso o Spotify retorne 0
+      enrichPlaylistTrackCounts(userPlaylists, token, (updatedList) => {
+        setPlaylists(updatedList);
+      });
+    } catch (err) {
+      console.error('Erro ao buscar playlists:', err);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -57,6 +57,12 @@ export function PlaylistsView({ token }: { token: string }) {
       .then((data) => {
         if (data.items) {
           setPlaylistTracks(data.items);
+          const totalCount = data.total ?? data.items.length;
+          setPlaylists((prev) =>
+            prev.map((p) =>
+              p.id === playlistId ? { ...p, tracks: { ...(p.tracks || {}), total: totalCount } } : p
+            )
+          );
         }
         setLoadingTracks(false);
       })
@@ -222,7 +228,7 @@ export function PlaylistsView({ token }: { token: string }) {
                 </div>
                 <h4 className="font-bold text-white mb-1 truncate">{pl.name || 'Sem nome'}</h4>
                 <p className="text-xs text-gray-400">
-                  {pl.tracks?.total || 0} músicas • {pl.public ? 'Pública' : 'Privada'}
+                  {getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}
                 </p>
               </div>
             </div>
@@ -251,7 +257,7 @@ export function PlaylistsView({ token }: { token: string }) {
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-1">{selectedPlaylist.name}</h3>
                   <p className="text-sm text-gray-400">
-                    {playlistTracks.length} faixas listadas • {selectedPlaylist.public ? 'Pública' : 'Privada'}
+                    {playlistTracks.length > 0 ? playlistTracks.length : getPlaylistTrackCount(selectedPlaylist)} faixas listadas • {selectedPlaylist.public ? 'Pública' : 'Privada'}
                   </p>
                 </div>
               </div>
