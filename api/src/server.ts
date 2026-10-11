@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 // Endpoint para iniciar o login com o Spotify
 app.get('/api/auth/login', (req, res) => {
-  const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
+  const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
   const authQueryParameters = new URLSearchParams({
     response_type: 'code',
     client_id: SPOTIFY_CLIENT_ID as string,
@@ -256,7 +256,7 @@ app.get('/api/suggestions', async (req, res) => {
 
 // Endpoint para expandir playlist existente com IA
 app.post('/api/playlist/append-ai', async (req, res) => {
-  const { playlistId, prompt, token, trackCount = 10 } = req.body;
+  const { playlistId, prompt, token, trackCount = 10, existingTracks, playlistName: reqPlName, playlistDesc: reqPlDesc } = req.body;
 
   if (!playlistId || !token) {
     return res.status(400).json({ error: 'Playlist ID ou Token ausente' });
@@ -265,16 +265,51 @@ app.post('/api/playlist/append-ai', async (req, res) => {
   const requestedCount = Math.min(Math.max(parseInt(trackCount, 10) || 10, 1), 30);
 
   try {
+    // 1. Buscar detalhes da playlist e músicas existentes para dar contexto real à IA
+    let playlistName = reqPlName || '';
+    let playlistDesc = reqPlDesc || '';
+    let existingSongList: string[] = Array.isArray(existingTracks) && existingTracks.length > 0 ? existingTracks : [];
+
+    if (existingSongList.length === 0 || !playlistName) {
+      try {
+        const playlistDetails = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!playlistName) playlistName = playlistDetails.data.name || '';
+        if (!playlistDesc) playlistDesc = playlistDetails.data.description || '';
+        if (existingSongList.length === 0) {
+          const existingItems = playlistDetails.data.items?.items || playlistDetails.data.tracks?.items || [];
+          existingSongList = existingItems.slice(0, 25).map((i: any) => {
+            const track = i.item || i.track;
+            if (!track) return null;
+            return `"${track.name}" (${track.artists?.map((a: any) => a.name).join(', ')})`;
+          }).filter(Boolean);
+        }
+      } catch (fetchErr) {
+        console.warn("Não foi possível obter dados prévios da playlist para contexto:", fetchErr);
+      }
+    }
+
+    const aiPromptInstructions = `Você é um curador musical especialista. O usuário quer expandir uma playlist existente.
+INFORMAÇÕES DA PLAYLIST:
+- Nome da Playlist: "${playlistName || 'Playlist'}"
+- Descrição: "${playlistDesc || 'Sem descrição'}"
+- Amostra de músicas que JÁ ESTÃO nesta playlist: ${existingSongList.length > 0 ? existingSongList.join('; ') : 'Nenhuma listada'}
+
+${prompt && prompt.trim() ? `O usuário fez o seguinte pedido adicional: "${prompt}".` : 'O usuário não forneceu instruções extras de texto. Portanto, analise com extremo cuidado o gênero, a sonoridade e os artistas das músicas já presentes na playlist para manter a mesma vibe.'}
+
+REGRAS OBRIGATÓRIAS E CRÍTICAS:
+1. Mantenha ESTRITAMENTE o mesmo gênero, atmosfera e estilo musical das músicas já presentes. Exemplo: se a playlist for de Grunge/Rock alternativo anos 90 (como Alice in Chains, Nirvana, Pearl Jam), JAMAIS gere K-Pop, Sertanejo, Funk ou pop desconexo.
+2. NÃO repita nenhuma das músicas que já estão na playlist.
+3. Gere exatamente ${requestedCount} músicas compatíveis e naturais para essa playlist.
+4. Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}]. Sem formatação markdown ou crases.`;
+
     let geminiOutput = "";
-    const aiPrompt = prompt ? `Músicas que combinem com o pedido: "${prompt}".` : `Músicas recomendadas para expandir esta playlist mantendo o ritmo.`;
 
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: `Voce e um curador musical especialista. O usuario quer adicionar faixas a uma playlist existente.
-        Contexto/Pedido: ${aiPrompt}
-        Gere exatamente ${requestedCount} musicas perfeitas para esse contexto.
-        Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
+        contents: aiPromptInstructions,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -299,8 +334,8 @@ app.post('/api/playlist/append-ai', async (req, res) => {
         const groqResponse = await groq.chat.completions.create({
           model: "openai/gpt-oss-20b",
           messages: [
-            { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
-            { role: "user", content: `Gere exatamente ${requestedCount} musicas para adicionar à playlist com o seguinte contexto: "${aiPrompt}".` }
+            { role: "system", content: "Você é um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown ou explicações." },
+            { role: "user", content: aiPromptInstructions }
           ],
           temperature: 0.7
         });

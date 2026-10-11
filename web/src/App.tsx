@@ -4,6 +4,7 @@ import { MainContent } from './components/MainContent';
 import { PlaylistsView } from './components/views/PlaylistsView';
 import { HistoryView } from './components/views/HistoryView';
 import { SettingsView } from './components/views/SettingsView';
+import { PlayerBar } from './components/PlayerBar';
 import { ListMusic } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
@@ -26,7 +27,7 @@ function App() {
     if (savedPrimaryColor) document.documentElement.style.setProperty('--theme-primary-purple', savedPrimaryColor);
     if (savedSurfaceColor) document.documentElement.style.setProperty('--theme-dark-surface', savedSurfaceColor);
     if (savedInnerColor) document.documentElement.style.setProperty('--theme-dark-inner', savedInnerColor);
-    if (savedBgImage) document.documentElement.style.setProperty('--theme-bg-image', `url(${savedBgImage})`);
+    if (savedBgImage) document.documentElement.style.setProperty('--theme-bg-image', `url("${savedBgImage}")`);
 
     // Verifica se há token na URL (vindo do redirecionamento do backend)
     const urlParams = new URLSearchParams(window.location.search);
@@ -77,7 +78,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-transparent font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-transparent font-sans overflow-hidden">
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -100,11 +101,14 @@ function App() {
           },
         }}
       />
-      <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
-      {currentView === 'home' && <MainContent token={token} />}
-      {currentView === 'playlists' && <PlaylistsView token={token} />}
-      {currentView === 'history' && <HistoryView onNavigateHome={() => setCurrentView('home')} />}
-      {currentView === 'settings' && <SettingsView />}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
+        {currentView === 'home' && <MainContent token={token} />}
+        {currentView === 'playlists' && <PlaylistsView token={token} />}
+        {currentView === 'history' && <HistoryView onNavigateHome={() => setCurrentView('home')} />}
+        {currentView === 'settings' && <SettingsView />}
+      </div>
+      <PlayerBar token={token} />
     </div>
   );
 }

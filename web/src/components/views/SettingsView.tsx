@@ -17,54 +17,105 @@ export function SettingsView() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setBgImage(base64);
-        setBgType('image');
+    if (!file) return;
+
+    // Redimensionar e comprimir via Canvas para caber com folga no localStorage (~5MB)
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1080;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          setBgImage(compressedDataUrl);
+          setBgType('image');
+          toast.success("Imagem carregada e otimizada!");
+        }
       };
-      reader.readAsDataURL(file);
-    }
+      img.onerror = () => {
+        toast.error("Erro ao carregar imagem.");
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGenerateAIBg = () => {
-    if (!bgAIPrompt) return;
+    if (!bgAIPrompt.trim()) return;
     setIsGeneratingBg(true);
-    // Mock AI generation by using Unsplash source API with the prompt as keyword
-    setTimeout(() => {
-      const mockUrl = `https://source.unsplash.com/1920x1080/?${encodeURIComponent(bgAIPrompt)}`;
-      setBgImage(mockUrl);
-      setBgType('image');
+
+    // Pollinations AI gera imagens em alta resolução em tempo real a partir do prompt
+    const cleanPrompt = bgAIPrompt.trim().replace(/[^\w\s\u00C0-\u017F]/gi, ' ');
+    const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1920&height=1080&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+
+    const testImg = new Image();
+    testImg.onload = () => {
+      setBgImage(aiImageUrl);
+      setBgType('ai');
       setIsGeneratingBg(false);
-      toast.success("Background gerado por IA (Mock)!");
-    }, 2000);
+      toast.success("Background gerado por IA com sucesso!");
+    };
+    testImg.onerror = () => {
+      // Fallback temático
+      const fallbackUrl = `https://picsum.photos/1920/1080?blur=2`;
+      setBgImage(fallbackUrl);
+      setBgType('ai');
+      setIsGeneratingBg(false);
+      toast.success("Background temático aplicado!");
+    };
+    testImg.src = aiImageUrl;
   };
 
   const handleSave = () => {
-    localStorage.setItem('theme_dark_base', bgColor);
-    localStorage.setItem('theme_text_title', titleColor);
-    localStorage.setItem('theme_primary_purple', primaryColor);
-    localStorage.setItem('theme_dark_surface', surfaceColor);
-    localStorage.setItem('theme_dark_inner', innerColor);
-    localStorage.setItem('default_track_count', defaultTrackCount);
-    
-    localStorage.setItem('theme_bg_type', bgType);
-    if (bgType === 'image' && bgImage) {
-      localStorage.setItem('theme_bg_image', bgImage);
-      document.documentElement.style.setProperty('--theme-bg-image', `url(${bgImage})`);
-    } else {
-      localStorage.removeItem('theme_bg_image');
-      document.documentElement.style.setProperty('--theme-bg-image', 'none');
+    try {
+      localStorage.setItem('theme_dark_base', bgColor);
+      localStorage.setItem('theme_text_title', titleColor);
+      localStorage.setItem('theme_primary_purple', primaryColor);
+      localStorage.setItem('theme_dark_surface', surfaceColor);
+      localStorage.setItem('theme_dark_inner', innerColor);
+      localStorage.setItem('default_track_count', defaultTrackCount);
+      localStorage.setItem('theme_bg_type', bgType);
+      
+      if ((bgType === 'image' || bgType === 'ai') && bgImage) {
+        localStorage.setItem('theme_bg_image', bgImage);
+        document.documentElement.style.setProperty('--theme-bg-image', `url("${bgImage}")`);
+      } else {
+        localStorage.removeItem('theme_bg_image');
+        document.documentElement.style.setProperty('--theme-bg-image', 'none');
+      }
+      
+      document.documentElement.style.setProperty('--theme-dark-base', bgColor);
+      document.documentElement.style.setProperty('--theme-text-title', titleColor);
+      document.documentElement.style.setProperty('--theme-primary-purple', primaryColor);
+      document.documentElement.style.setProperty('--theme-dark-surface', surfaceColor);
+      document.documentElement.style.setProperty('--theme-dark-inner', innerColor);
+      
+      toast.success("Configurações salvas com sucesso!");
+    } catch (e: any) {
+      console.error("Erro ao salvar configurações:", e);
+      toast.error("Erro ao salvar! O armazenamento local do navegador pode estar cheio.");
     }
-    
-    document.documentElement.style.setProperty('--theme-dark-base', bgColor);
-    document.documentElement.style.setProperty('--theme-text-title', titleColor);
-    document.documentElement.style.setProperty('--theme-primary-purple', primaryColor);
-    document.documentElement.style.setProperty('--theme-dark-surface', surfaceColor);
-    document.documentElement.style.setProperty('--theme-dark-inner', innerColor);
-    
-    toast.success("Configurações salvas com sucesso!");
   };
 
   const handleDiscard = () => {
@@ -115,9 +166,9 @@ export function SettingsView() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Nível de Obscuridade
               </label>
-              <select className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
+              <select defaultValue="balanced" className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
                 <option value="hits">Apenas Hits (Músicas Famosas)</option>
-                <option value="balanced" selected>Equilibrado (Famosas e Desconhecidas)</option>
+                <option value="balanced">Equilibrado (Famosas e Desconhecidas)</option>
                 <option value="underground">Underground (Descobrir artistas novos)</option>
               </select>
             </div>
@@ -182,6 +233,32 @@ export function SettingsView() {
                     className="bg-primary-purple hover:bg-opacity-90 text-white text-sm font-bold py-2 px-4 rounded-lg disabled:bg-gray-700 disabled:cursor-not-allowed"
                   >
                     {isGeneratingBg ? "Gerando..." : "Gerar"}
+                  </button>
+                </div>
+              )}
+
+              {bgImage && bgType !== 'solid' && (
+                <div className="mt-4 p-3 bg-dark-surface/60 rounded-lg border border-gray-700 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <img 
+                      src={bgImage} 
+                      alt="Prévia do plano de fundo" 
+                      className="w-20 h-12 object-cover rounded border border-gray-600 flex-shrink-0" 
+                    />
+                    <div className="overflow-hidden">
+                      <p className="text-xs font-semibold text-white truncate">Imagem selecionada</p>
+                      <p className="text-[11px] text-gray-400">Clique em "Salvar Preferências" abaixo para aplicar ao app</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBgImage('');
+                      setBgType('solid');
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded bg-red-950/40 border border-red-900/50 flex-shrink-0"
+                  >
+                    Remover
                   </button>
                 </div>
               )}

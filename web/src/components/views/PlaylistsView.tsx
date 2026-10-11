@@ -85,11 +85,20 @@ export function PlaylistsView({ token }: { token: string }) {
     setIsExpandingAi(true);
 
     try {
+      const currentSongStrings = playlistTracks.slice(0, 25).map((i: any) => {
+        const track = i.item || i.track;
+        if (!track) return null;
+        return `"${track.name}" (${track.artists?.map((a: any) => a.name).join(', ')})`;
+      }).filter(Boolean);
+
       const res = await fetch('http://127.0.0.1:3000/api/playlist/append-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           playlistId: selectedPlaylist.id,
+          playlistName: selectedPlaylist.name,
+          playlistDesc: selectedPlaylist.description,
+          existingTracks: currentSongStrings,
           prompt: aiPrompt,
           token,
           trackCount: aiCount
