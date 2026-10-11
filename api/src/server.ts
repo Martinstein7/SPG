@@ -106,7 +106,7 @@ app.post('/api/generate', async (req, res) => {
         const { OpenAI } = require('openai');
         const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
         const groqResponse = await groq.chat.completions.create({
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
             { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
@@ -137,13 +137,7 @@ app.post('/api/generate', async (req, res) => {
     const cleanOutput = geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
     const suggestedTracks = JSON.parse(cleanOutput);
 
-    // 2. Pegar o ID do usuario no Spotify
-    const userProfileRes = await axios.get('https://api.spotify.com/v1/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const userId = userProfileRes.data.id;
-
-    // 3. Buscar as URIs das musicas no Spotify
+    // 2. Buscar as URIs das musicas no Spotify
     const trackUris: string[] = [];
     for (const track of suggestedTracks) {
       const q = encodeURIComponent(`track:${track.title} artist:${track.artist}`);
@@ -164,11 +158,11 @@ app.post('/api/generate', async (req, res) => {
       return res.status(400).json({ error: 'Nao foi possivel encontrar musicas para essa vibe no Spotify.' });
     }
 
-    // 4. Criar a Playlist no Spotify do Usuario
+    // 3. Criar a Playlist no Spotify do Usuario (usa endpoint moderno /v1/me/playlists)
     let playlistName = prompt.substring(0, 50); // Fallback do nome
     if (playlistName.length === 50) playlistName += '...';
 
-    const createPlaylistRes = await axios.post(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+    const createPlaylistRes = await axios.post(`https://api.spotify.com/v1/me/playlists`, {
       name: `SPG: ${playlistName}`,
       description: `Playlist gerada por IA com base em: "${prompt}"`,
       public: false
@@ -179,8 +173,8 @@ app.post('/api/generate', async (req, res) => {
     const playlistId = createPlaylistRes.data.id;
     const playlistUrl = createPlaylistRes.data.external_urls.spotify;
 
-    // 5. Adicionar as musicas na playlist
-    await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+    // 4. Adicionar as musicas na playlist (usa endpoint moderno /items do Spotify)
+    await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
       uris: trackUris
     }, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -190,11 +184,14 @@ app.post('/api/generate', async (req, res) => {
     res.json({ success: true, url: playlistUrl, playlistId });
 
   } catch (error: any) {
-    console.error("Erro na geracao da playlist:", error);
+    console.error("Erro na geracao da playlist:", error.response?.data || error.message || error);
     if (error?.message?.includes("Todas IAs falharam")) {
-      return res.status(503).json({ error: 'O Gemini falhou por alta demanda e as IAs de fallback (Groq/OpenAI) nao estao configuradas ou sem limite.' });
+      return res.status(503).json({ error: 'As IAs falharam por limite de cota. Tente novamente mais tarde.' });
     }
-    res.status(500).json({ error: 'Falha ao processar a requisicao com a IA. Tente novamente mais tarde.' });
+    if (error.response?.data?.error?.message) {
+      return res.status(500).json({ error: `Spotify: ${error.response.data.error.message}` });
+    }
+    res.status(500).json({ error: 'Falha ao processar a requisicao. Tente novamente mais tarde.' });
   }
 });
 
@@ -224,7 +221,7 @@ app.get('/api/suggestions', async (req, res) => {
         const { OpenAI } = require('openai');
         const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
         const groqResponse = await groq.chat.completions.create({
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: "Você é um curador musical. Gere 4 ideias curtas (de 2 a 6 palavras) para temas de playlists do Spotify EM PORTUGUÊS DO BRASIL (PT-BR). Varie os temas entre: 1. Gêneros ou subgêneros (Ex: 'Indie Rock', 'Synthwave', 'Sertanejo Raiz'); 2. Épocas/Décadas (Ex: 'Rock Anos 2000', 'Flashback Anos 80'); 3. Misturas de artistas (Ex: 'TSL + Deftones + HIM', 'The Weeknd e similares'); 4. Situações reais (Ex: 'Dirigindo de madrugada', 'Treino pesado'). EVITE frases muito poéticas, abstratas ou sem nexo (como 'Céu noturno de neon' ou 'Sons da biblioteca antiga'). Responda APENAS com um JSON Array contendo as 4 strings, sem formatação markdown ou crases." }
           ],
