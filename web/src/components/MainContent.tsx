@@ -19,6 +19,9 @@ export function MainContent({ token }: { token: string }) {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [currentExamples, setCurrentExamples] = useState<string[]>(DEFAULT_EXAMPLES);
   const [isLoadingExamples, setIsLoadingExamples] = useState(false);
+  const [trackCount, setTrackCount] = useState<number>(() => {
+    return parseInt(localStorage.getItem('default_track_count') || '20', 10);
+  });
 
   const fetchAiExamples = async () => {
     setIsLoadingExamples(true);
@@ -41,9 +44,9 @@ export function MainContent({ token }: { token: string }) {
   }, []);
 
   useEffect(() => {
-    let timeout1: NodeJS.Timeout;
-    let timeout2: NodeJS.Timeout;
-    let timeout3: NodeJS.Timeout;
+    let timeout1: ReturnType<typeof setTimeout>;
+    let timeout2: ReturnType<typeof setTimeout>;
+    let timeout3: ReturnType<typeof setTimeout>;
 
     if (isGenerating) {
       setLoadingText("Interpretando seu pedido com IA...");
@@ -121,7 +124,7 @@ export function MainContent({ token }: { token: string }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ prompt, token })
+        body: JSON.stringify({ prompt, token, trackCount })
       });
 
       const data = await response.json();
@@ -195,6 +198,25 @@ export function MainContent({ token }: { token: string }) {
           </div>
         )}
 
+        {/* Configuração de Quantidade de Músicas */}
+        <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
+          <span>Quantidade:</span>
+          {[10, 15, 20, 30, 50].map((count) => (
+            <button
+              key={count}
+              type="button"
+              onClick={() => setTrackCount(count)}
+              className={`px-3 py-1 rounded-lg border transition-all ${
+                trackCount === count
+                  ? 'bg-primary-purple border-primary-purple text-white font-bold'
+                  : 'bg-dark-inner border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
+            >
+              {count} músicas
+            </button>
+          ))}
+        </div>
+
         {/* Chips de Exemplo */}
         <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
           <span className="text-gray-400">Exemplos:</span>
@@ -218,10 +240,10 @@ export function MainContent({ token }: { token: string }) {
         </div>
       </div>
 
-      {/* Suas Playlists REAIS */}
+      {/* Sua Playlists */}
       <div className="mb-12">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold">Suas playlists reais</h3>
+          <h3 className="text-2xl font-bold">Sua Playlists</h3>
           <a href={profile?.external_urls?.spotify} target="_blank" className="text-sm text-spotify-green hover:underline transition-colors">Abrir Spotify &rarr;</a>
         </div>
         

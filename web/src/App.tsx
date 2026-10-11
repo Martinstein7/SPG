@@ -29,7 +29,6 @@ function App() {
     if (savedBgImage) document.documentElement.style.setProperty('--theme-bg-image', `url(${savedBgImage})`);
 
     // Verifica se há token na URL (vindo do redirecionamento do backend)
-    const hash = window.location.hash;
     const urlParams = new URLSearchParams(window.location.search);
     let accessToken = urlParams.get('access_token');
 

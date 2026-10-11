@@ -65,11 +65,13 @@ app.get('/api/auth/callback', async (req, res) => {
 
 // ENDPOINT PRINCIPAL DA NOSSA IA
 app.post('/api/generate', async (req, res) => {
-  const { prompt, token } = req.body;
+  const { prompt, token, trackCount = 20 } = req.body;
 
   if (!prompt || !token) {
     return res.status(400).json({ error: 'Prompt ou Token ausente' });
   }
+
+  const requestedCount = Math.min(Math.max(parseInt(trackCount, 10) || 20, 5), 50);
 
   try {
     // 1. Pedir pro Gemini gerar uma lista de musicas
@@ -79,10 +81,9 @@ app.post('/api/generate', async (req, res) => {
         model: 'gemini-3.8-flash',
         contents: `Voce e um curador musical especialista. O usuario pediu uma playlist com a seguinte descricao: "${prompt}". 
         Instrucoes:
-        1. Identifique se o usuario pediu uma quantidade especifica de musicas. Se sim, gere exatamente essa quantidade, MAS NUNCA ultrapasse o limite de 50 musicas.
-        2. Se o usuario nao especificou uma quantidade, gere 15 musicas.
-        3. As musicas devem ser perfeitamente encaixadas no clima e tema pedidos.
-        4. Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
+        1. Gere exatamente ${requestedCount} musicas (nunca ultrapasse 50).
+        2. As musicas devem ser perfeitamente encaixadas no clima e tema pedidos.
+        3. Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -109,7 +110,7 @@ app.post('/api/generate', async (req, res) => {
           model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
-            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
+            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Gere exatamente ${requestedCount} musicas.` }
           ],
           temperature: 0.7
         });
@@ -123,7 +124,7 @@ app.post('/api/generate', async (req, res) => {
           model: "gpt-3.5-turbo",
           messages: [
             { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
-            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Se ele pediu uma quantidade especifica, obedeca (maximo 50). Caso contrario, gere 15 musicas.` }
+            { role: "user", content: `O usuario pediu uma playlist com a seguinte descricao: "${prompt}". Gere exatamente ${requestedCount} musicas.` }
           ],
           temperature: 0.7
         });
@@ -250,6 +251,117 @@ app.get('/api/suggestions', async (req, res) => {
   } catch (error) {
     console.error("Erro ao gerar sugestoes:", error);
     res.json({ suggestions: ["Vampiro melancólico", "Dirigindo de madrugada", "TSL + Deftones + HIM", "Anos 2000"] });
+  }
+});
+
+// Endpoint para expandir playlist existente com IA
+app.post('/api/playlist/append-ai', async (req, res) => {
+  const { playlistId, prompt, token, trackCount = 10 } = req.body;
+
+  if (!playlistId || !token) {
+    return res.status(400).json({ error: 'Playlist ID ou Token ausente' });
+  }
+
+  const requestedCount = Math.min(Math.max(parseInt(trackCount, 10) || 10, 1), 30);
+
+  try {
+    let geminiOutput = "";
+    const aiPrompt = prompt ? `Músicas que combinem com o pedido: "${prompt}".` : `Músicas recomendadas para expandir esta playlist mantendo o ritmo.`;
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: `Voce e um curador musical especialista. O usuario quer adicionar faixas a uma playlist existente.
+        Contexto/Pedido: ${aiPrompt}
+        Gere exatamente ${requestedCount} musicas perfeitas para esse contexto.
+        Responda APENAS com o JSON no formato: [{"title": "nome", "artist": "artista"}].`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                artist: { type: Type.STRING }
+              },
+              required: ["title", "artist"]
+            }
+          }
+        }
+      });
+      geminiOutput = response.text || "";
+    } catch (geminiError: any) {
+      console.error("Gemini falhou na adição, usando Groq...", geminiError.message);
+      if (process.env.GROQ_API_KEY) {
+        const { OpenAI } = require('openai');
+        const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+        const groqResponse = await groq.chat.completions.create({
+          model: "openai/gpt-oss-20b",
+          messages: [
+            { role: "system", content: "Voce e um curador musical especialista. Responda APENAS com um JSON Array contendo objetos com 'title' e 'artist'. Sem markdown." },
+            { role: "user", content: `Gere exatamente ${requestedCount} musicas para adicionar à playlist com o seguinte contexto: "${aiPrompt}".` }
+          ],
+          temperature: 0.7
+        });
+        geminiOutput = groqResponse.choices[0].message.content || "";
+      }
+    }
+
+    if (!geminiOutput) throw new Error("A IA não retornou faixas");
+
+    const cleanOutput = geminiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    const suggestedTracks = JSON.parse(cleanOutput);
+
+    // Buscar URIs no Spotify
+    const trackUris: string[] = [];
+    for (const track of suggestedTracks) {
+      const q = encodeURIComponent(`track:${track.title} artist:${track.artist}`);
+      try {
+        const searchRes = await axios.get(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (searchRes.data.tracks.items.length > 0) {
+          trackUris.push(searchRes.data.tracks.items[0].uri);
+        }
+      } catch (e) {
+        console.error(`Musica nao encontrada: ${track.title}`);
+      }
+    }
+
+    if (trackUris.length === 0) {
+      return res.status(400).json({ error: 'Nao foi possivel encontrar as musicas no Spotify.' });
+    }
+
+    // Adiciona na playlist existente usando endpoint moderno /items
+    await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
+      uris: trackUris
+    }, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+
+    res.json({ success: true, addedCount: trackUris.length, tracks: suggestedTracks });
+  } catch (error: any) {
+    console.error("Erro ao adicionar faixas:", error.response?.data || error.message || error);
+    res.status(500).json({ error: error.response?.data?.error?.message || 'Falha ao adicionar músicas à playlist.' });
+  }
+});
+
+// Endpoint para adicionar uma música específica manualmente
+app.post('/api/playlist/append-track', async (req, res) => {
+  const { playlistId, uri, token } = req.body;
+  if (!playlistId || !uri || !token) return res.status(400).json({ error: 'Dados ausentes' });
+
+  try {
+    await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
+      uris: [uri]
+    }, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Erro ao adicionar faixa:", error.response?.data || error.message || error);
+    res.status(500).json({ error: error.response?.data?.error?.message || 'Falha ao adicionar música.' });
   }
 });
 

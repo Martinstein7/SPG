@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Sliders, Sparkles, LogOut, Palette } from 'lucide-react';
+import { Sliders, Sparkles, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function SettingsView() {
@@ -8,6 +8,7 @@ export function SettingsView() {
   const [primaryColor, setPrimaryColor] = useState(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
   const [surfaceColor, setSurfaceColor] = useState(localStorage.getItem('theme_dark_surface') || '#1A1625');
   const [innerColor, setInnerColor] = useState(localStorage.getItem('theme_dark_inner') || '#110e19');
+  const [defaultTrackCount, setDefaultTrackCount] = useState(localStorage.getItem('default_track_count') || '20');
 
   const [bgType, setBgType] = useState<'solid' | 'image' | 'ai'>(localStorage.getItem('theme_bg_type') as any || 'solid');
   const [bgImage, setBgImage] = useState<string>(localStorage.getItem('theme_bg_image') || '');
@@ -46,6 +47,7 @@ export function SettingsView() {
     localStorage.setItem('theme_primary_purple', primaryColor);
     localStorage.setItem('theme_dark_surface', surfaceColor);
     localStorage.setItem('theme_dark_inner', innerColor);
+    localStorage.setItem('default_track_count', defaultTrackCount);
     
     localStorage.setItem('theme_bg_type', bgType);
     if (bgType === 'image' && bgImage) {
@@ -71,6 +73,7 @@ export function SettingsView() {
     setPrimaryColor(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
     setSurfaceColor(localStorage.getItem('theme_dark_surface') || '#1A1625');
     setInnerColor(localStorage.getItem('theme_dark_inner') || '#110e19');
+    setDefaultTrackCount(localStorage.getItem('default_track_count') || '20');
     setBgType((localStorage.getItem('theme_bg_type') as any) || 'solid');
     setBgImage(localStorage.getItem('theme_bg_image') || '');
   };
@@ -95,10 +98,16 @@ export function SettingsView() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Tamanho Padrão da Playlist
               </label>
-              <select className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none">
+              <select 
+                value={defaultTrackCount}
+                onChange={(e) => setDefaultTrackCount(e.target.value)}
+                className="w-full bg-dark-inner border border-gray-700 rounded-lg p-3 text-white focus:ring-1 focus:ring-primary-purple outline-none"
+              >
                 <option value="10">Curta (10 músicas)</option>
-                <option value="15" selected>Ideal (15 músicas)</option>
+                <option value="15">Padrão (15 músicas)</option>
+                <option value="20">Ideal (20 músicas)</option>
                 <option value="30">Longa (30 músicas)</option>
+                <option value="50">Completa (50 músicas)</option>
               </select>
             </div>
 
