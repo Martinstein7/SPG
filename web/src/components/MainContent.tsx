@@ -73,30 +73,34 @@ export function MainContent({ token }: { token: string }) {
 
   useEffect(() => {
     if (token) {
-      // Buscar perfil
-      fetch('https://api.spotify.com/v1/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => setProfile(data))
-      .catch(err => console.error("Erro Perfil:", err));
-
-      // Buscar playlists reais do usuario
-      fetch('https://api.spotify.com/v1/me/playlists?limit=10', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setPlaylistError(data.error.message);
-        } else if (data.items) {
-          setPlaylists(data.items);
-          if (data.items.length === 0) {
-            setPlaylistError("Sua conta do Spotify retornou 0 playlists. Você realmente tem playlists criadas?");
+      Promise.all([
+        fetch('https://api.spotify.com/v1/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(res => res.json()),
+        fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(res => res.json())
+      ])
+      .then(([userProfile, playlistData]) => {
+        setProfile(userProfile);
+        if (playlistData.items) {
+          const editable = playlistData.items.filter((pl: any) =>
+            pl.collaborative || pl.owner?.id === userProfile.id
+          );
+          setPlaylists(editable);
+          if (editable.length === 0) {
+            setPlaylistError("Você ainda não possui playlists próprias ou colaborativas criadas.");
+          } else {
+            setPlaylistError(null);
           }
+        } else if (playlistData.error) {
+          setPlaylistError(playlistData.error.message);
         }
       })
-      .catch(err => setPlaylistError(err.toString()));
+      .catch(err => {
+        console.error("Erro ao carregar dados do usuário:", err);
+        setPlaylistError("Erro ao carregar playlists do Spotify.");
+      });
     }
   }, [token]);
 

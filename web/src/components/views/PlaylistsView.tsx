@@ -20,15 +20,24 @@ export function PlaylistsView({ token }: { token: string }) {
   const [isSearching, setIsSearching] = useState(false);
   const [addingTrackUri, setAddingTrackUri] = useState<string | null>(null);
 
-  // Carregar playlists do usuário
+  // Carregar apenas playlists controladas ou colaborativas pelo usuário
   const fetchPlaylists = () => {
     setLoading(true);
-    fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.items) setPlaylists(data.items);
+    Promise.all([
+      fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then((res) => res.json()),
+      fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then((res) => res.json())
+    ])
+      .then(([userProfile, data]) => {
+        if (data.items) {
+          const editable = data.items.filter((pl: any) =>
+            pl.collaborative || pl.owner?.id === userProfile.id
+          );
+          setPlaylists(editable);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
