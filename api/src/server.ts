@@ -13,8 +13,9 @@ app.use(cors());
 app.use(express.json());
 
 // Constantes do Spotify
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const SPOTIFY_CLIENT_ID = (process.env.SPOTIFY_CLIENT_ID || '').trim();
+const SPOTIFY_CLIENT_SECRET = (process.env.SPOTIFY_CLIENT_SECRET || '').trim();
+const REDIRECT_URI = (process.env.REDIRECT_URI || 'http://127.0.0.1:3000/api/auth/callback').trim();
 const rawFrontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').trim().replace(/\/$/, '');
 const FRONTEND_URL = rawFrontendUrl.startsWith('http://') || rawFrontendUrl.startsWith('https://')
   ? rawFrontendUrl
@@ -30,15 +31,20 @@ app.get('/', (req, res) => {
 
 // Endpoint para iniciar o login com o Spotify
 app.get('/api/auth/login', (req, res) => {
-  const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
-  const authQueryParameters = new URLSearchParams({
-    response_type: 'code',
-    client_id: SPOTIFY_CLIENT_ID as string,
-    scope: scope,
-    redirect_uri: REDIRECT_URI,
-  });
+  try {
+    const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
+    const authQueryParameters = new URLSearchParams({
+      response_type: 'code',
+      client_id: SPOTIFY_CLIENT_ID,
+      scope: scope,
+      redirect_uri: REDIRECT_URI,
+    });
 
-  res.redirect(`https://accounts.spotify.com/authorize?${authQueryParameters.toString()}`);
+    res.redirect(`https://accounts.spotify.com/authorize?${authQueryParameters.toString()}`);
+  } catch (err: any) {
+    console.error('Erro ao iniciar login:', err);
+    res.status(500).send(`Erro ao iniciar autenticacao: ${err?.message || err}`);
+  }
 });
 
 // Callback do Spotify apos o login
