@@ -128,5 +128,5 @@ O aplicativo estará acessível em `http://localhost:5173`.
 ---
 
 <div align="center">
-  Desenvolvido com 💜 por Willian
+  Desenvolvido por Willian
 </div>
