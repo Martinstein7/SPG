@@ -152,12 +152,20 @@ export function PlayerBar({ token }: PlayerBarProps) {
   const currentTrack = playback?.item;
 
   return (
-    <footer className="h-20 bg-dark-surface/95 backdrop-blur-md border-t border-gray-800/80 px-6 flex items-center justify-between text-white select-none z-30 flex-shrink-0 transition-colors">
+    <footer className="relative h-16 md:h-20 bg-dark-surface/98 backdrop-blur-md border-t border-gray-800/80 px-3 md:px-6 flex items-center justify-between text-white select-none z-30 flex-shrink-0 transition-colors">
+      {/* Barra de Progresso Superior (visível em telas mobile ou como indicador fino) */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800/80 md:hidden">
+        <div
+          className="h-full bg-spotify-green transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
       {/* Lado Esquerdo: Capa e Detalhes da Faixa */}
-      <div className="flex items-center gap-4 w-1/4 min-w-[200px]">
+      <div className="flex items-center gap-2.5 md:gap-4 flex-1 md:flex-initial md:w-1/4 md:min-w-[200px] min-w-0 pr-2">
         {currentTrack ? (
           <>
-            <div className="relative group w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 border border-gray-700">
+            <div className="relative group w-11 h-11 md:w-14 md:h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 border border-gray-700">
               <img
                 src={currentTrack.album?.images?.[0]?.url || 'https://via.placeholder.com/64'}
                 alt={currentTrack.name}
@@ -175,30 +183,60 @@ export function PlayerBar({ token }: PlayerBarProps) {
                 </a>
               )}
             </div>
-            <div className="flex flex-col overflow-hidden">
-              <span className="font-semibold text-sm truncate text-white hover:underline cursor-pointer" title={currentTrack.name}>
+            <div className="flex flex-col min-w-0 overflow-hidden">
+              <span className="font-semibold text-xs md:text-sm truncate text-white hover:underline cursor-pointer" title={currentTrack.name}>
                 {currentTrack.name}
               </span>
-              <span className="text-xs text-gray-400 truncate" title={currentTrack.artists?.map((a: any) => a.name).join(', ')}>
+              <span className="text-[11px] md:text-xs text-gray-400 truncate" title={currentTrack.artists?.map((a: any) => a.name).join(', ')}>
                 {currentTrack.artists?.map((a: any) => a.name).join(', ')}
               </span>
             </div>
           </>
         ) : (
-          <div className="flex items-center gap-3 text-gray-400 text-xs">
-            <div className="w-10 h-10 rounded-lg bg-dark-inner flex items-center justify-center border border-gray-800 text-gray-500">
-              <Music2 size={18} />
+          <div className="flex items-center gap-2.5 text-gray-400 text-xs min-w-0">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-dark-inner flex items-center justify-center border border-gray-800 text-gray-500 flex-shrink-0">
+              <Music2 size={16} />
             </div>
-            <div className="flex flex-col">
-              <span className="font-medium text-gray-300">Nenhum som tocando</span>
-              <span className="text-[11px] text-gray-500">Dê play no Spotify para sincronizar</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-medium text-xs md:text-sm text-gray-300 truncate">Nenhum som tocando</span>
+              <span className="text-[10px] md:text-[11px] text-gray-500 truncate hidden xs:inline">Dê play no Spotify</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Centro: Controles e Barra de Progresso */}
-      <div className="flex flex-col items-center gap-1.5 w-2/4 max-w-xl">
+      {/* Controles para Mobile (< md) */}
+      <div className="flex md:hidden items-center gap-1.5 flex-shrink-0">
+        <button
+          onClick={handlePrevious}
+          disabled={!hasDevice || isControlling}
+          title="Faixa Anterior"
+          className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <SkipBack size={18} />
+        </button>
+
+        <button
+          onClick={handleTogglePlay}
+          disabled={!hasDevice || isControlling}
+          title={isPlaying ? 'Pausar' : 'Reproduzir'}
+          className="w-8 h-8 rounded-full bg-white text-black hover:scale-105 active:scale-95 flex items-center justify-center transition-transform disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isPlaying ? <Pause size={16} className="fill-black" /> : <Play size={16} className="fill-black ml-0.5" />}
+        </button>
+
+        <button
+          onClick={handleNext}
+          disabled={!hasDevice || isControlling}
+          title="Próxima Faixa"
+          className="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <SkipForward size={18} />
+        </button>
+      </div>
+
+      {/* Centro: Controles e Barra de Progresso (Desktop >= md) */}
+      <div className="hidden md:flex flex-col items-center gap-1.5 w-2/4 max-w-xl">
         <div className="flex items-center gap-5">
           <button
             onClick={handlePrevious}
@@ -228,7 +266,7 @@ export function PlayerBar({ token }: PlayerBarProps) {
           </button>
         </div>
 
-        {/* Linha de Tempo */}
+        {/* Linha de Tempo Desktop */}
         <div className="w-full flex items-center gap-3 text-[11px] text-gray-400">
           <span className="w-8 text-right font-mono">{formatTime(progressMs)}</span>
           <div className="flex-1 h-1.5 bg-gray-700/80 rounded-full overflow-hidden relative">
@@ -241,8 +279,8 @@ export function PlayerBar({ token }: PlayerBarProps) {
         </div>
       </div>
 
-      {/* Lado Direito: Dispositivo e Atualizar */}
-      <div className="flex items-center justify-end gap-3 w-1/4 text-xs text-gray-400">
+      {/* Lado Direito: Dispositivo e Atualizar (Desktop >= md) */}
+      <div className="hidden md:flex items-center justify-end gap-3 w-1/4 text-xs text-gray-400">
         {playback?.device && (
           <div className="flex items-center gap-1.5 bg-dark-inner/80 px-2.5 py-1 rounded-full border border-gray-700/60" title={`Dispositivo: ${playback.device.name}`}>
             <Laptop size={14} className="text-spotify-green" />
@@ -252,7 +290,7 @@ export function PlayerBar({ token }: PlayerBarProps) {
         <button
           onClick={fetchPlayback}
           title="Sincronizar status do Spotify agora"
-          className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors cursor-pointer"
         >
           <RefreshCw size={15} />
         </button>

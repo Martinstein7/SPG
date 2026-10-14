@@ -186,31 +186,31 @@ export function PlaylistsView({ token }: { token: string }) {
   };
 
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
-      <div className="mb-8">
-        <h2 className="text-4xl font-bold mb-2">Minhas Playlists</h2>
-        <p className="text-gray-400 text-lg">
+    <main className="flex-1 h-full overflow-y-auto p-4 sm:p-6 md:p-10 bg-transparent text-white">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">Minhas Playlists</h2>
+        <p className="text-gray-400 text-sm sm:text-base md:text-lg">
           Gerencie e adicione músicas às suas playlists existentes pelo app.
         </p>
       </div>
 
       {loading ? (
-        <div className="text-gray-400 flex items-center gap-2">
+        <div className="text-gray-400 flex items-center gap-2 text-sm sm:text-base">
           <Loader2 className="animate-spin text-primary-purple" size={20} />
           Carregando playlists...
         </div>
       ) : playlists.length === 0 ? (
-        <div className="text-gray-400">Nenhuma playlist encontrada.</div>
+        <div className="text-gray-400 text-sm sm:text-base">Nenhuma playlist encontrada.</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
           {playlists.map((pl, i) => (
             <div
               key={pl.id || i}
               onClick={() => handleOpenPlaylist(pl)}
-              className="bg-dark-surface p-4 rounded-xl hover:bg-[#252033] border border-gray-800 hover:border-primary-purple/50 transition-all cursor-pointer group flex flex-col justify-between"
+              className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] border border-gray-800 hover:border-primary-purple/50 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
-                <div className="aspect-square bg-gray-800 rounded-lg mb-4 overflow-hidden flex items-center justify-center relative">
+                <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center relative">
                   {pl.images && pl.images.length > 0 ? (
                     <img
                       src={pl.images[0].url}
@@ -218,7 +218,7 @@ export function PlaylistsView({ token }: { token: string }) {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   ) : (
-                    <Music size={40} className="text-gray-600" />
+                    <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="text-xs bg-primary-purple font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -226,8 +226,8 @@ export function PlaylistsView({ token }: { token: string }) {
                     </span>
                   </div>
                 </div>
-                <h4 className="font-bold text-white mb-1 truncate">{pl.name || 'Sem nome'}</h4>
-                <p className="text-xs text-gray-400">
+                <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
+                <p className="text-[11px] sm:text-xs text-gray-400">
                   {getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}
                 </p>
               </div>
@@ -238,12 +238,12 @@ export function PlaylistsView({ token }: { token: string }) {
 
       {/* Modal de Detalhes e Gerenciamento da Playlist */}
       {selectedPlaylist && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-dark-surface border border-gray-700 w-full max-w-4xl max-h-[90vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-dark-surface border border-gray-700 w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl">
             {/* Cabeçalho do Modal */}
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between bg-dark-inner/50">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div className="p-4 sm:p-6 border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-inner/50">
+              <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
                   {selectedPlaylist.images && selectedPlaylist.images.length > 0 ? (
                     <img
                       src={selectedPlaylist.images[0].url}
@@ -251,30 +251,30 @@ export function PlaylistsView({ token }: { token: string }) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Music size={28} className="text-gray-500" />
+                    <Music size={24} className="text-gray-500 sm:w-7 sm:h-7" />
                   )}
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-white mb-1">{selectedPlaylist.name}</h3>
-                  <p className="text-sm text-gray-400">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1 truncate">{selectedPlaylist.name}</h3>
+                  <p className="text-xs sm:text-sm text-gray-400 truncate">
                     {playlistTracks.length > 0 ? playlistTracks.length : getPlaylistTrackCount(selectedPlaylist)} faixas listadas • {selectedPlaylist.public ? 'Pública' : 'Privada'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-end gap-2.5 flex-shrink-0">
                 <a
                   href={selectedPlaylist.external_urls?.spotify}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 bg-spotify-green hover:bg-[#1ed760] text-black font-bold rounded-lg text-sm flex items-center gap-1.5 transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-spotify-green hover:bg-[#1ed760] text-black font-bold rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
                 >
-                  <ExternalLink size={16} />
+                  <ExternalLink size={15} />
                   Abrir no Spotify
                 </a>
                 <button
                   onClick={handleCloseModal}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>
@@ -282,7 +282,7 @@ export function PlaylistsView({ token }: { token: string }) {
             </div>
 
             {/* Conteúdo com Scroll */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1">
               {/* Bloco 1: Ações de Adicionar Músicas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Opção A: Expandir com IA */}
@@ -423,11 +423,11 @@ export function PlaylistsView({ token }: { token: string }) {
                       return (
                         <div
                           key={track.id || idx}
-                          className="flex items-center justify-between p-3 rounded-lg hover:bg-dark-inner transition-colors text-sm"
+                          className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg hover:bg-dark-inner transition-colors text-xs sm:text-sm"
                         >
-                          <div className="flex items-center gap-3 truncate">
-                            <span className="text-gray-500 text-xs w-5 text-right">{idx + 1}</span>
-                            <div className="w-10 h-10 rounded bg-gray-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 pr-2">
+                            <span className="text-gray-500 text-xs w-4 sm:w-5 text-right flex-shrink-0">{idx + 1}</span>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-gray-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
                               {track.album?.images && track.album.images.length > 0 ? (
                                 <img
                                   src={track.album.images[0].url}
@@ -435,18 +435,18 @@ export function PlaylistsView({ token }: { token: string }) {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <Music size={18} className="text-gray-600" />
+                                <Music size={16} className="text-gray-600 sm:w-4 sm:h-4" />
                               )}
                             </div>
-                            <div className="truncate">
-                              <p className="font-bold text-white truncate">{track.name}</p>
-                              <p className="text-xs text-gray-400 truncate">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white text-xs sm:text-sm truncate">{track.name}</p>
+                              <p className="text-[11px] sm:text-xs text-gray-400 truncate">
                                 {track.artists?.map((a: any) => a.name).join(', ')}
                               </p>
                             </div>
                           </div>
 
-                          <div className="text-xs text-gray-400 flex-shrink-0 ml-4">
+                          <div className="text-[11px] sm:text-xs text-gray-400 flex-shrink-0 font-mono">
                             {formatDuration(track.duration_ms || 0)}
                           </div>
                         </div>

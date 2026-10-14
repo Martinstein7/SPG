@@ -172,32 +172,34 @@ export function MainContent({ token }: { token: string }) {
   };
 
   return (
-    <main className="flex-1 h-full overflow-y-auto p-10 bg-transparent text-white">
+    <main className="flex-1 h-full overflow-y-auto p-4 sm:p-6 md:p-10 bg-transparent text-white">
       {/* Cabeçalho de Boas Vindas */}
-      <div className="mb-12">
-        <h2 className="text-4xl font-bold mb-2">
+      <div className="mb-6 sm:mb-10 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
           Boas-vindas{profile?.display_name ? `, ${profile.display_name.split(' ')[0]}` : ''}!
         </h2>
-        <p className="text-gray-400 text-lg">O que você quer ouvir hoje?</p>
+        <p className="text-gray-400 text-sm sm:text-base md:text-lg">O que você quer ouvir hoje?</p>
       </div>
 
       {/* Barra de Pesquisa / Prompt */}
-      <div className="max-w-3xl mb-12">
-        <div className="relative group flex items-center">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="text-gray-400" size={20} />
+      <div className="max-w-3xl mb-8 sm:mb-12">
+        <div className="relative group flex flex-col md:flex-row gap-2.5 md:gap-0 md:items-center">
+          <div className="relative flex-1 flex items-center">
+            <div className="absolute inset-y-0 left-0 pl-3.5 sm:pl-4 flex items-center pointer-events-none">
+              <Search className="text-gray-400" size={18} />
+            </div>
+            <input 
+              type="text" 
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full bg-dark-surface border border-gray-700 text-white rounded-xl py-3.5 sm:py-4 pl-10 sm:pl-12 pr-4 md:pr-60 focus:outline-none focus:border-primary-purple focus:ring-1 focus:ring-primary-purple transition-all text-sm sm:text-base md:text-lg"
+              placeholder="Ex: Crie uma playlist para um vampiro melancólico..."
+            />
           </div>
-          <input 
-            type="text" 
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full bg-dark-surface border border-gray-700 text-white rounded-xl py-4 pl-12 pr-64 focus:outline-none focus:border-primary-purple focus:ring-1 focus:ring-primary-purple transition-all text-lg"
-            placeholder="Ex: Crie uma playlist para um vampiro melancólico..."
-          />
           <button 
             onClick={handleGenerate}
             disabled={isGenerating || !prompt}
-            className={`absolute inset-y-2 right-2 bg-primary-purple hover:bg-opacity-90 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 transition-all min-w-[200px] justify-center`}
+            className="w-full md:w-auto md:absolute md:inset-y-2 md:right-2 bg-primary-purple hover:bg-opacity-90 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 md:py-2 px-5 sm:px-6 rounded-xl md:rounded-lg flex items-center gap-2 transition-all md:min-w-[190px] justify-center cursor-pointer text-sm sm:text-base flex-shrink-0"
           >
             <Sparkles size={18} className={isGenerating ? "animate-pulse" : ""} />
             <span className="truncate max-w-[200px]">{isGenerating ? loadingText : "Gerar Playlist"}</span>
@@ -205,24 +207,24 @@ export function MainContent({ token }: { token: string }) {
         </div>
         
         {generateError && (
-          <div className="mt-4 text-red-400 bg-[#3a1c1c] p-4 rounded-xl border border-red-900/50 flex items-start gap-3">
+          <div className="mt-4 text-red-400 bg-[#3a1c1c] p-3.5 sm:p-4 rounded-xl border border-red-900/50 flex items-start gap-3">
             <span className="text-xl">⚠️</span>
             <div>
-              <strong className="block mb-1">Ops, algo deu errado:</strong>
-              <p className="text-sm">{generateError}</p>
+              <strong className="block mb-1 text-sm sm:text-base">Ops, algo deu errado:</strong>
+              <p className="text-xs sm:text-sm">{generateError}</p>
             </div>
           </div>
         )}
 
         {/* Configuração de Quantidade de Músicas */}
-        <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-          <span>Quantidade:</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 text-xs text-gray-400">
+          <span className="w-full sm:w-auto font-medium">Quantidade:</span>
           {[10, 15, 20, 30, 50].map((count) => (
             <button
               key={count}
               type="button"
               onClick={() => setTrackCount(count)}
-              className={`px-3 py-1 rounded-lg border transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg border text-xs transition-all cursor-pointer ${
                 trackCount === count
                   ? 'bg-primary-purple border-primary-purple text-white font-bold'
                   : 'bg-dark-inner border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'
@@ -234,13 +236,13 @@ export function MainContent({ token }: { token: string }) {
         </div>
 
         {/* Chips de Exemplo */}
-        <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
-          <span className="text-gray-400">Exemplos:</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-xs sm:text-sm">
+          <span className="text-gray-400 text-xs sm:text-sm">Exemplos:</span>
           {currentExamples.map((ex) => (
             <button 
               key={ex} 
               onClick={() => setPrompt(ex)}
-              className="px-3 py-1.5 rounded-full border border-gray-700 bg-dark-surface hover:border-gray-500 text-gray-300 transition-colors"
+              className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-gray-700 bg-dark-surface hover:border-gray-500 text-gray-300 transition-colors text-xs sm:text-sm cursor-pointer"
             >
               {ex}
             </button>
@@ -248,47 +250,51 @@ export function MainContent({ token }: { token: string }) {
           <button 
             onClick={fetchAiExamples}
             disabled={isLoadingExamples}
-            className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors ml-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             title="Gerar novas sugestões com IA"
           >
-            <RefreshCw size={16} className={isLoadingExamples ? "animate-spin text-primary-purple" : ""} />
+            <RefreshCw size={15} className={isLoadingExamples ? "animate-spin text-primary-purple" : ""} />
           </button>
         </div>
       </div>
 
       {/* Sua Playlists */}
       <div className="mb-12">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold">Sua Playlists</h3>
-          <a href={profile?.external_urls?.spotify} target="_blank" className="text-sm text-spotify-green hover:underline transition-colors">Abrir Spotify &rarr;</a>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-xl sm:text-2xl font-bold">Sua Playlists</h3>
+          <a href={profile?.external_urls?.spotify} target="_blank" className="text-xs sm:text-sm text-spotify-green hover:underline transition-colors flex items-center gap-1">
+            Abrir Spotify &rarr;
+          </a>
         </div>
         
         {playlistError ? (
-          <div className="text-red-400 bg-dark-surface p-6 rounded-xl text-center border border-red-900/30">
+          <div className="text-red-400 bg-dark-surface p-6 rounded-xl text-center border border-red-900/30 text-sm sm:text-base">
             {playlistError}
           </div>
         ) : playlists.length === 0 ? (
-          <div className="text-gray-400 bg-dark-surface p-6 rounded-xl text-center border border-gray-800">
+          <div className="text-gray-400 bg-dark-surface p-6 rounded-xl text-center border border-gray-800 text-sm sm:text-base">
             Carregando suas playlists...
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {playlists.map((pl, i) => (
               <a 
                 href={pl.external_urls?.spotify || '#'} 
                 target="_blank" 
                 key={pl.id || i} 
-                className="bg-dark-surface p-4 rounded-xl hover:bg-[#252033] transition-colors cursor-pointer group"
+                className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] transition-colors cursor-pointer group flex flex-col justify-between"
               >
-                <div className="aspect-square bg-gray-800 rounded-lg mb-4 overflow-hidden flex items-center justify-center">
+                <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center">
                   {pl.images && pl.images.length > 0 ? (
                     <img src={pl.images[0].url} alt={pl.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   ) : (
-                    <Music size={40} className="text-gray-600" />
+                    <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
                   )}
                 </div>
-                <h4 className="font-bold text-white mb-1 truncate">{pl.name || 'Sem nome'}</h4>
-                <p className="text-xs text-gray-400">{getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
+                <div>
+                  <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
+                  <p className="text-[11px] sm:text-xs text-gray-400">{getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
+                </div>
               </a>
             ))}
           </div>

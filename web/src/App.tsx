@@ -5,6 +5,8 @@ import { PlaylistsView } from './components/views/PlaylistsView';
 import { HistoryView } from './components/views/HistoryView';
 import { SettingsView } from './components/views/SettingsView';
 import { PlayerBar } from './components/PlayerBar';
+import { MobileNav } from './components/MobileNav';
+import { MobileHeader } from './components/MobileHeader';
 import { ListMusic } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
@@ -53,22 +55,22 @@ function App() {
 
   if (!token) {
     return (
-      <div className="flex h-screen bg-dark-base font-sans overflow-hidden items-center justify-center text-white relative">
+      <div className="flex h-screen bg-dark-base font-sans overflow-hidden items-center justify-center text-white relative px-4">
         {/* Imagem de fundo com opacidade */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#1DB954]/10 to-dark-base z-0"></div>
         
-        <div className="z-10 flex flex-col items-center bg-dark-surface p-12 rounded-2xl border border-gray-800 shadow-2xl max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-spotify-green flex items-center justify-center mb-6">
-            <ListMusic size={32} className="text-black" />
+        <div className="z-10 flex flex-col items-center bg-dark-surface p-6 sm:p-10 rounded-2xl border border-gray-800 shadow-2xl max-w-md w-full text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-spotify-green flex items-center justify-center mb-5 sm:mb-6">
+            <ListMusic size={28} className="text-black sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Spotify AI Playlist</h1>
-          <p className="text-gray-400 mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Spotify AI Playlist</h1>
+          <p className="text-gray-400 text-sm sm:text-base mb-8 sm:mb-10">
             Transforme suas ideias em playlists reais. Conecte sua conta para começarmos.
           </p>
           
           <button 
             onClick={handleLogin}
-            className="bg-spotify-green hover:bg-[#1ed760] text-black font-bold py-4 px-8 rounded-full w-full transition-transform hover:scale-105 active:scale-95"
+            className="bg-spotify-green hover:bg-[#1ed760] text-black font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-full w-full transition-transform hover:scale-105 active:scale-95 text-sm sm:text-base cursor-pointer"
           >
             Conectar com o Spotify
           </button>
@@ -101,6 +103,9 @@ function App() {
           },
         }}
       />
+      {/* Top Header no Mobile */}
+      <MobileHeader token={token} />
+
       <div className="flex flex-1 overflow-hidden">
         <Sidebar token={token} currentView={currentView} setCurrentView={setCurrentView} />
         {currentView === 'home' && <MainContent token={token} />}
@@ -108,7 +113,12 @@ function App() {
         {currentView === 'history' && <HistoryView onNavigateHome={() => setCurrentView('home')} />}
         {currentView === 'settings' && <SettingsView />}
       </div>
+
+      {/* Mini Player */}
       <PlayerBar token={token} />
+
+      {/* Bottom Bar de Navegação no Mobile */}
+      <MobileNav currentView={currentView} setCurrentView={setCurrentView} />
     </div>
   );
 }

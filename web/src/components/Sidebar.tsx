@@ -24,7 +24,7 @@ export function Sidebar({
   }, [token]);
 
   return (
-    <aside className="w-64 bg-dark-surface h-full flex flex-col p-6 border-r border-gray-800">
+    <aside className="hidden md:flex w-64 bg-dark-surface h-full flex-col p-6 border-r border-gray-800 flex-shrink-0 select-none">
       <div className="flex items-center gap-3 mb-10">
         <div className="w-8 h-8 rounded-full bg-spotify-green flex items-center justify-center">
           <ListMusic size={18} className="text-black" />
