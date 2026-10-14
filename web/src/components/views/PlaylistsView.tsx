@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Music, Sparkles, Plus, ExternalLink, X, Search, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../../utils/spotifyPlaylists';
+import { API_BASE_URL } from '../../config';
 
 export function PlaylistsView({ token }: { token: string }) {
   const [playlists, setPlaylists] = useState<any[]>([]);
@@ -97,7 +98,7 @@ export function PlaylistsView({ token }: { token: string }) {
         return `"${track.name}" (${track.artists?.map((a: any) => a.name).join(', ')})`;
       }).filter(Boolean);
 
-      const res = await fetch('http://127.0.0.1:3000/api/playlist/append-ai', {
+      const res = await fetch(`${API_BASE_URL}/api/playlist/append-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +155,7 @@ export function PlaylistsView({ token }: { token: string }) {
     setAddingTrackUri(track.uri);
 
     try {
-      const res = await fetch('http://127.0.0.1:3000/api/playlist/append-track', {
+      const res = await fetch(`${API_BASE_URL}/api/playlist/append-track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

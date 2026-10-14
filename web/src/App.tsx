@@ -9,6 +9,7 @@ import { MobileNav } from './components/MobileNav';
 import { MobileHeader } from './components/MobileHeader';
 import { ListMusic } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import { API_BASE_URL } from './config';
 import './App.css';
 
 function App() {
@@ -50,7 +51,7 @@ function App() {
 
   const handleLogin = () => {
     // Redireciona para o nosso backend, que vai iniciar o fluxo do Spotify
-    window.location.href = 'http://127.0.0.1:3000/api/auth/login';
+    window.location.href = `${API_BASE_URL}/api/auth/login`;
   };
 
   if (!token) {

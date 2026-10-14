@@ -2,6 +2,7 @@ import { Search, Sparkles, Music, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../utils/spotifyPlaylists';
+import { API_BASE_URL } from '../config';
 
 const DEFAULT_EXAMPLES = [
   'Vampiro melancólico', 
@@ -27,7 +28,7 @@ export function MainContent({ token }: { token: string }) {
   const fetchAiExamples = async () => {
     setIsLoadingExamples(true);
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/suggestions');
+      const response = await fetch(`${API_BASE_URL}/api/suggestions`);
       const data = await response.json();
       if (data.suggestions && data.suggestions.length > 0) {
         setCurrentExamples(data.suggestions.slice(0, 4));
@@ -124,7 +125,7 @@ export function MainContent({ token }: { token: string }) {
     setGenerateError(null);
     
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/generate', {
+      const response = await fetch(`${API_BASE_URL}/api/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

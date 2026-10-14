@@ -57,3 +57,4 @@ export function MobileHeader({ token }: MobileHeaderProps) {
     </header>
   );
 }
+
