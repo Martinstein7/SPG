@@ -15,7 +15,8 @@ app.use(express.json());
 // Constantes do Spotify
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const REDIRECT_URI = 'http://127.0.0.1:3000/api/auth/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://127.0.0.1:3000/api/auth/callback';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Instancia do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -57,10 +58,10 @@ app.get('/api/auth/callback', async (req, res) => {
     const { access_token, refresh_token, expires_in } = response.data;
     
     // Redireciona de volta para o frontend com os tokens na URL
-    res.redirect(`http://localhost:5173/?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`);
+    res.redirect(`${FRONTEND_URL}/?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`);
   } catch (error) {
     console.error('Erro na autenticacao do Spotify:', error);
-    res.redirect(`http://localhost:5173/?error=auth_failed`);
+    res.redirect(`${FRONTEND_URL}/?error=auth_failed`);
   }
 });
 
