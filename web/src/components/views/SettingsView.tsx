@@ -1,6 +1,49 @@
 import { useState } from 'react';
-import { Sliders, Sparkles, Palette } from 'lucide-react';
+import { Sliders, Sparkles, Palette, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const PRESET_THEMES = [
+  {
+    name: 'Roxo Original',
+    bg: '#0E0B14',
+    surface: '#1A1625',
+    inner: '#110e19',
+    primary: '#6C5CE7',
+    title: '#ffffff'
+  },
+  {
+    name: 'Spotify Black',
+    bg: '#090909',
+    surface: '#121212',
+    inner: '#181818',
+    primary: '#1DB954',
+    title: '#ffffff'
+  },
+  {
+    name: 'Oceano Noturno',
+    bg: '#070F1B',
+    surface: '#0F1E33',
+    inner: '#0A1526',
+    primary: '#38BDF8',
+    title: '#F0F9FF'
+  },
+  {
+    name: 'Vampiro Carmesim',
+    bg: '#120709',
+    surface: '#220D12',
+    inner: '#17090C',
+    primary: '#E11D48',
+    title: '#FFE4E6'
+  },
+  {
+    name: 'Cyberpunk Gold',
+    bg: '#0D0C06',
+    surface: '#1C190B',
+    inner: '#141208',
+    primary: '#F59E0B',
+    title: '#FEF3C7'
+  }
+];
 
 export function SettingsView() {
   const [bgColor, setBgColor] = useState(localStorage.getItem('theme_dark_base') || '#0E0B14');
@@ -14,6 +57,43 @@ export function SettingsView() {
   const [bgImage, setBgImage] = useState<string>(localStorage.getItem('theme_bg_image') || '');
   const [bgAIPrompt, setBgAIPrompt] = useState<string>('');
   const [isGeneratingBg, setIsGeneratingBg] = useState(false);
+
+  const applyThemeColorsLive = (colors: {
+    bg: string;
+    surface: string;
+    inner: string;
+    primary: string;
+    title: string;
+  }) => {
+    document.documentElement.style.setProperty('--theme-dark-base', colors.bg);
+    document.documentElement.style.setProperty('--theme-dark-surface', colors.surface);
+    document.documentElement.style.setProperty('--theme-dark-inner', colors.inner);
+    document.documentElement.style.setProperty('--theme-primary-purple', colors.primary);
+    document.documentElement.style.setProperty('--theme-text-title', colors.title);
+  };
+
+  const handleApplyPreset = (preset: typeof PRESET_THEMES[0]) => {
+    setBgColor(preset.bg);
+    setSurfaceColor(preset.surface);
+    setInnerColor(preset.inner);
+    setPrimaryColor(preset.primary);
+    setTitleColor(preset.title);
+    setBgType('solid');
+    setBgImage('');
+
+    applyThemeColorsLive(preset);
+    document.documentElement.style.setProperty('--theme-bg-image', 'none');
+
+    localStorage.setItem('theme_dark_base', preset.bg);
+    localStorage.setItem('theme_dark_surface', preset.surface);
+    localStorage.setItem('theme_dark_inner', preset.inner);
+    localStorage.setItem('theme_primary_purple', preset.primary);
+    localStorage.setItem('theme_text_title', preset.title);
+    localStorage.setItem('theme_bg_type', 'solid');
+    localStorage.removeItem('theme_bg_image');
+
+    toast.success(`Tema "${preset.name}" aplicado!`);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,7 +130,8 @@ export function SettingsView() {
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
           setBgImage(compressedDataUrl);
           setBgType('image');
-          toast.success("Imagem carregada e otimizada!");
+          document.documentElement.style.setProperty('--theme-bg-image', `url("${compressedDataUrl}")`);
+          toast.success("Imagem carregada! Clique em Salvar Preferências para fixar.");
         }
       };
       img.onerror = () => {
@@ -74,6 +155,7 @@ export function SettingsView() {
       setBgImage(aiImageUrl);
       setBgType('ai');
       setIsGeneratingBg(false);
+      document.documentElement.style.setProperty('--theme-bg-image', `url("${aiImageUrl}")`);
       toast.success("Background gerado por IA com sucesso!");
     };
     testImg.onerror = () => {
@@ -82,6 +164,7 @@ export function SettingsView() {
       setBgImage(fallbackUrl);
       setBgType('ai');
       setIsGeneratingBg(false);
+      document.documentElement.style.setProperty('--theme-bg-image', `url("${fallbackUrl}")`);
       toast.success("Background temático aplicado!");
     };
     testImg.src = aiImageUrl;
@@ -105,11 +188,13 @@ export function SettingsView() {
         document.documentElement.style.setProperty('--theme-bg-image', 'none');
       }
       
-      document.documentElement.style.setProperty('--theme-dark-base', bgColor);
-      document.documentElement.style.setProperty('--theme-text-title', titleColor);
-      document.documentElement.style.setProperty('--theme-primary-purple', primaryColor);
-      document.documentElement.style.setProperty('--theme-dark-surface', surfaceColor);
-      document.documentElement.style.setProperty('--theme-dark-inner', innerColor);
+      applyThemeColorsLive({
+        bg: bgColor,
+        surface: surfaceColor,
+        inner: innerColor,
+        primary: primaryColor,
+        title: titleColor
+      });
       
       toast.success("Configurações salvas com sucesso!");
     } catch (e: any) {
@@ -119,20 +204,43 @@ export function SettingsView() {
   };
 
   const handleDiscard = () => {
-    setBgColor(localStorage.getItem('theme_dark_base') || '#0E0B14');
-    setTitleColor(localStorage.getItem('theme_text_title') || '#ffffff');
-    setPrimaryColor(localStorage.getItem('theme_primary_purple') || '#6C5CE7');
-    setSurfaceColor(localStorage.getItem('theme_dark_surface') || '#1A1625');
-    setInnerColor(localStorage.getItem('theme_dark_inner') || '#110e19');
+    const savedBg = localStorage.getItem('theme_dark_base') || '#0E0B14';
+    const savedTitle = localStorage.getItem('theme_text_title') || '#ffffff';
+    const savedPrimary = localStorage.getItem('theme_primary_purple') || '#6C5CE7';
+    const savedSurface = localStorage.getItem('theme_dark_surface') || '#1A1625';
+    const savedInner = localStorage.getItem('theme_dark_inner') || '#110e19';
+    const savedBgType = (localStorage.getItem('theme_bg_type') as any) || 'solid';
+    const savedBgImage = localStorage.getItem('theme_bg_image') || '';
+
+    setBgColor(savedBg);
+    setTitleColor(savedTitle);
+    setPrimaryColor(savedPrimary);
+    setSurfaceColor(savedSurface);
+    setInnerColor(savedInner);
     setDefaultTrackCount(localStorage.getItem('default_track_count') || '20');
-    setBgType((localStorage.getItem('theme_bg_type') as any) || 'solid');
-    setBgImage(localStorage.getItem('theme_bg_image') || '');
+    setBgType(savedBgType);
+    setBgImage(savedBgImage);
+
+    applyThemeColorsLive({
+      bg: savedBg,
+      surface: savedSurface,
+      inner: savedInner,
+      primary: savedPrimary,
+      title: savedTitle
+    });
+    if ((savedBgType === 'image' || savedBgType === 'ai') && savedBgImage) {
+      document.documentElement.style.setProperty('--theme-bg-image', `url("${savedBgImage}")`);
+    } else {
+      document.documentElement.style.setProperty('--theme-bg-image', 'none');
+    }
+    toast("Alterações não salvas descartadas.");
   };
+
   return (
     <main className="flex-1 h-full overflow-y-auto p-4 sm:p-6 md:p-10 bg-transparent text-white">
       <div className="mb-6 sm:mb-8">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">Configurações</h2>
-        <p className="text-gray-400 text-sm sm:text-base md:text-lg">Ajuste suas preferências de geração de playlists.</p>
+        <p className="text-gray-400 text-sm sm:text-base md:text-lg">Ajuste suas preferências e personalize as cores do aplicativo.</p>
       </div>
       
       <div className="max-w-3xl space-y-6 sm:space-y-8">
@@ -177,13 +285,52 @@ export function SettingsView() {
 
         {/* Bloco 2: Estilo */}
         <section className="bg-dark-surface p-4 sm:p-6 rounded-xl border border-gray-800">
-          <div className="flex items-center gap-3 mb-4 sm:mb-6">
-            <Palette className="text-primary-purple" size={22} />
-            <h3 className="text-lg sm:text-xl font-bold">Estilo Visual</h3>
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+            <div className="flex items-center gap-3">
+              <Palette className="text-primary-purple" size={22} />
+              <h3 className="text-lg sm:text-xl font-bold">Estilo Visual</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset(PRESET_THEMES[0])}
+              className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-dark-inner border border-gray-700 cursor-pointer"
+            >
+              <RotateCcw size={13} />
+              Restaurar Padrão
+            </button>
           </div>
           
           <div className="space-y-4 sm:space-y-6">
-            
+            {/* Temas Rápidos de 1 Toque (Ideal para Celular) */}
+            <div className="p-3.5 sm:p-4 bg-dark-inner rounded-lg border border-gray-700">
+              <h4 className="font-bold text-sm sm:text-base mb-1">Temas Rápidos (1 Toque)</h4>
+              <p className="text-xs text-gray-400 mb-3">Toque em um tema abaixo para alterar todas as cores instantaneamente.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                {PRESET_THEMES.map((preset) => {
+                  const isSelected = bgColor.toLowerCase() === preset.bg.toLowerCase() && primaryColor.toLowerCase() === preset.primary.toLowerCase() && bgType === 'solid';
+                  return (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-2 ${
+                        isSelected
+                          ? 'border-white ring-1 ring-white bg-black/40'
+                          : 'border-gray-700 hover:border-gray-500 bg-black/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: preset.bg }} />
+                        <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: preset.surface }} />
+                        <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: preset.primary }} />
+                      </div>
+                      <span className="text-xs font-bold text-white truncate">{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="p-3.5 sm:p-4 bg-dark-inner rounded-lg border border-gray-700">
               <div className="mb-3 sm:mb-4">
                 <h4 className="font-bold text-sm sm:text-base">Plano de Fundo</h4>
@@ -255,6 +402,7 @@ export function SettingsView() {
                     onClick={() => {
                       setBgImage('');
                       setBgType('solid');
+                      document.documentElement.style.setProperty('--theme-bg-image', 'none');
                     }}
                     className="text-xs text-red-400 hover:text-red-300 font-semibold px-2.5 py-1 rounded bg-red-950/40 border border-red-900/50 flex-shrink-0 cursor-pointer"
                   >
@@ -273,7 +421,10 @@ export function SettingsView() {
                 <input 
                   type="color" 
                   value={bgColor} 
-                  onChange={(e) => setBgColor(e.target.value)}
+                  onChange={(e) => {
+                    setBgColor(e.target.value);
+                    document.documentElement.style.setProperty('--theme-dark-base', e.target.value);
+                  }}
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
                 />
               </div>
@@ -287,7 +438,10 @@ export function SettingsView() {
               <input 
                 type="color" 
                 value={surfaceColor} 
-                onChange={(e) => setSurfaceColor(e.target.value)}
+                onChange={(e) => {
+                  setSurfaceColor(e.target.value);
+                  document.documentElement.style.setProperty('--theme-dark-surface', e.target.value);
+                }}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
               />
             </div>
@@ -300,7 +454,10 @@ export function SettingsView() {
               <input 
                 type="color" 
                 value={innerColor} 
-                onChange={(e) => setInnerColor(e.target.value)}
+                onChange={(e) => {
+                  setInnerColor(e.target.value);
+                  document.documentElement.style.setProperty('--theme-dark-inner', e.target.value);
+                }}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
               />
             </div>
@@ -313,7 +470,10 @@ export function SettingsView() {
               <input 
                 type="color" 
                 value={titleColor} 
-                onChange={(e) => setTitleColor(e.target.value)}
+                onChange={(e) => {
+                  setTitleColor(e.target.value);
+                  document.documentElement.style.setProperty('--theme-text-title', e.target.value);
+                }}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
               />
             </div>
@@ -326,7 +486,10 @@ export function SettingsView() {
               <input 
                 type="color" 
                 value={primaryColor} 
-                onChange={(e) => setPrimaryColor(e.target.value)}
+                onChange={(e) => {
+                  setPrimaryColor(e.target.value);
+                  document.documentElement.style.setProperty('--theme-primary-purple', e.target.value);
+                }}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded cursor-pointer bg-transparent border-0 p-0 flex-shrink-0"
               />
             </div>
@@ -372,4 +535,5 @@ export function SettingsView() {
     </main>
   );
 }
+
 

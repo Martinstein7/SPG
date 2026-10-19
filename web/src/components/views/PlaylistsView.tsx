@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Music, Sparkles, Plus, ExternalLink, X, Search, Loader2 } from 'lucide-react';
+import { Music, Sparkles, Plus, ExternalLink, X, Search, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../../utils/spotifyPlaylists';
+import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount, saveCustomPlaylistCover, getPlaylistCoverUrl } from '../../utils/spotifyPlaylists';
 import { API_BASE_URL } from '../../config';
 
 export function PlaylistsView({ token }: { token: string }) {
@@ -16,6 +16,10 @@ export function PlaylistsView({ token }: { token: string }) {
   const [aiCount, setAiCount] = useState(10);
   const [isExpandingAi, setIsExpandingAi] = useState(false);
 
+  // Estados para gerar/alterar capa com IA
+  const [coverPrompt, setCoverPrompt] = useState('');
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+
   // Estados para busca manual
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -26,9 +30,13 @@ export function PlaylistsView({ token }: { token: string }) {
   const fetchPlaylists = async () => {
     setLoading(true);
     try {
-      const userProfile = await fetch('https://api.spotify.com/v1/me', {
+      const meRes = await fetch('https://api.spotify.com/v1/me', {
         headers: { Authorization: `Bearer ${token}` }
-      }).then((res) => res.json());
+      });
+      if (!meRes.ok) {
+        throw new Error(`Spotify /me status ${meRes.status}`);
+      }
+      const userProfile = await meRes.json();
 
       const userPlaylists = await fetchAllUserPlaylists(token, userProfile);
       setPlaylists(userPlaylists);
@@ -76,6 +84,7 @@ export function PlaylistsView({ token }: { token: string }) {
   const handleOpenPlaylist = (pl: any) => {
     setSelectedPlaylist(pl);
     setAiPrompt('');
+    setCoverPrompt('');
     setSearchQuery('');
     setSearchResults([]);
     fetchTracks(pl.id);
@@ -84,6 +93,60 @@ export function PlaylistsView({ token }: { token: string }) {
   const handleCloseModal = () => {
     setSelectedPlaylist(null);
     setPlaylistTracks([]);
+  };
+
+  // Gerar/Alterar capa da playlist com IA
+  const handleGenerateAiCover = async () => {
+    if (!selectedPlaylist) return;
+    setIsGeneratingCover(true);
+
+    try {
+      const currentSongStrings = playlistTracks.slice(0, 12).map((i: any) => {
+        const track = i.item || i.track;
+        if (!track) return null;
+        return `"${track.name}" (${track.artists?.map((a: any) => a.name).join(', ')})`;
+      }).filter(Boolean);
+
+      const res = await fetch(`${API_BASE_URL}/api/playlist/cover-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playlistId: selectedPlaylist.id,
+          playlistName: selectedPlaylist.name,
+          playlistDesc: selectedPlaylist.description,
+          existingTracks: currentSongStrings,
+          prompt: coverPrompt.trim(),
+          token
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.coverUrl) {
+        saveCustomPlaylistCover(selectedPlaylist.id, data.coverUrl);
+        setSelectedPlaylist((prev: any) =>
+          prev ? { ...prev, customCoverUrl: data.coverUrl, images: [{ url: data.coverUrl }] } : prev
+        );
+        setPlaylists((prev) =>
+          prev.map((p) =>
+            p.id === selectedPlaylist.id
+              ? { ...p, customCoverUrl: data.coverUrl, images: [{ url: data.coverUrl }] }
+              : p
+          )
+        );
+        setCoverPrompt('');
+        if (data.warning) {
+          toast(data.warning, { icon: '⚠️', duration: 6000 });
+        } else {
+          toast.success('Nova capa gerada com IA e aplicada na playlist!');
+        }
+      } else {
+        toast.error(data.error || 'Erro ao gerar capa com IA.');
+      }
+    } catch {
+      toast.error('Erro ao comunicar com o servidor.');
+    } finally {
+      setIsGeneratingCover(false);
+    }
   };
 
   // Expandir com IA
@@ -191,7 +254,7 @@ export function PlaylistsView({ token }: { token: string }) {
       <div className="mb-6 sm:mb-8">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">Minhas Playlists</h2>
         <p className="text-gray-400 text-sm sm:text-base md:text-lg">
-          Gerencie e adicione músicas às suas playlists existentes pelo app.
+          Gerencie, gere capas com IA e adicione músicas às suas playlists existentes.
         </p>
       </div>
 
@@ -204,36 +267,39 @@ export function PlaylistsView({ token }: { token: string }) {
         <div className="text-gray-400 text-sm sm:text-base">Nenhuma playlist encontrada.</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-          {playlists.map((pl, i) => (
-            <div
-              key={pl.id || i}
-              onClick={() => handleOpenPlaylist(pl)}
-              className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] border border-gray-800 hover:border-primary-purple/50 transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center relative">
-                  {pl.images && pl.images.length > 0 ? (
-                    <img
-                      src={pl.images[0].url}
-                      alt={pl.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  ) : (
-                    <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
-                  )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-xs bg-primary-purple font-bold px-3 py-1.5 rounded-full shadow-lg">
-                      Gerenciar
-                    </span>
+          {playlists.map((pl, i) => {
+            const coverUrl = getPlaylistCoverUrl(pl);
+            return (
+              <div
+                key={pl.id || i}
+                onClick={() => handleOpenPlaylist(pl)}
+                className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] border border-gray-800 hover:border-primary-purple/50 transition-all cursor-pointer group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center relative">
+                    {coverUrl ? (
+                      <img
+                        src={coverUrl}
+                        alt={pl.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-xs bg-primary-purple font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        Gerenciar
+                      </span>
+                    </div>
                   </div>
+                  <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
+                  <p className="text-[11px] sm:text-xs text-gray-400">
+                    {getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}
+                  </p>
                 </div>
-                <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
-                <p className="text-[11px] sm:text-xs text-gray-400">
-                  {getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}
-                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -244,10 +310,10 @@ export function PlaylistsView({ token }: { token: string }) {
             {/* Cabeçalho do Modal */}
             <div className="p-4 sm:p-6 border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-inner/50">
               <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  {selectedPlaylist.images && selectedPlaylist.images.length > 0 ? (
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                  {getPlaylistCoverUrl(selectedPlaylist) ? (
                     <img
-                      src={selectedPlaylist.images[0].url}
+                      src={getPlaylistCoverUrl(selectedPlaylist)!}
                       alt={selectedPlaylist.name}
                       className="w-full h-full object-cover"
                     />
@@ -284,6 +350,46 @@ export function PlaylistsView({ token }: { token: string }) {
 
             {/* Conteúdo com Scroll */}
             <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1">
+              {/* Bloco Novo: Alterar Capa da Playlist com IA */}
+              <div className="p-4 bg-dark-inner rounded-xl border border-primary-purple/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ImageIcon className="text-primary-purple" size={18} />
+                    <h4 className="font-bold text-sm text-white">Alterar Imagem da Playlist com IA</h4>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2.5">
+                    Descreva como quer a capa ou deixe em branco para gerar automaticamente com base no título <strong className="text-gray-300">"{selectedPlaylist.name}"</strong>.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={coverPrompt}
+                      onChange={(e) => setCoverPrompt(e.target.value)}
+                      placeholder={`Opcional: deixe vazio para usar "${selectedPlaylist.name}"...`}
+                      className="flex-1 bg-dark-surface border border-gray-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary-purple"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiCover}
+                      disabled={isGeneratingCover}
+                      className="bg-primary-purple hover:bg-opacity-90 disabled:bg-gray-700 text-white font-bold px-4 py-2 rounded-lg text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors flex-shrink-0 cursor-pointer"
+                    >
+                      {isGeneratingCover ? (
+                        <>
+                          <Loader2 className="animate-spin" size={15} />
+                          Gerando Capa...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={15} />
+                          {coverPrompt.trim() ? 'Gerar Capa com Prompt' : 'Gerar Capa pelo Título'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Bloco 1: Ações de Adicionar Músicas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Opção A: Expandir com IA */}

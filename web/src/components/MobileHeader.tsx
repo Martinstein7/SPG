@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 
 interface MobileHeaderProps {
   token: string | null;
+  onLogout?: () => void;
 }
 
-export function MobileHeader({ token }: MobileHeaderProps) {
+export function MobileHeader({ token, onLogout }: MobileHeaderProps) {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -13,15 +14,26 @@ export function MobileHeader({ token }: MobileHeaderProps) {
       fetch('https://api.spotify.com/v1/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
-        .then((res) => res.json())
-        .then((data) => setProfile(data))
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to load profile');
+          return res.json();
+        })
+        .then((data) => {
+          if (data && !data.error) setProfile(data);
+        })
         .catch(() => {});
     }
   }, [token]);
 
   const handleLogout = () => {
-    localStorage.removeItem('spotify_token');
-    window.location.reload();
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('spotify_token');
+      localStorage.removeItem('spotify_refresh_token');
+      localStorage.removeItem('spotify_token_expiry');
+      window.location.reload();
+    }
   };
 
   return (
@@ -33,8 +45,8 @@ export function MobileHeader({ token }: MobileHeaderProps) {
         <span className="font-bold text-base tracking-tight text-white">Spotify AI Playlist</span>
       </div>
 
-      {profile && (
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5">
+        {profile && (
           <div className="w-7 h-7 rounded-full bg-gray-700 overflow-hidden border border-gray-700 flex-shrink-0">
             <img
               src={
@@ -45,15 +57,16 @@ export function MobileHeader({ token }: MobileHeaderProps) {
               className="w-full h-full object-cover"
             />
           </div>
-          <button
-            onClick={handleLogout}
-            title="Sair da conta"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={handleLogout}
+          title="Sair / Trocar conta"
+          className="px-2.5 py-1.5 rounded-lg bg-dark-inner border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+        >
+          <LogOut size={14} />
+          <span>Sair</span>
+        </button>
+      </div>
     </header>
   );
 }

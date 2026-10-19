@@ -1,7 +1,7 @@
 import { Search, Sparkles, Music, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount } from '../utils/spotifyPlaylists';
+import { fetchAllUserPlaylists, enrichPlaylistTrackCounts, getPlaylistTrackCount, saveCustomPlaylistCover, getPlaylistCoverUrl } from '../utils/spotifyPlaylists';
 import { API_BASE_URL } from '../config';
 
 const DEFAULT_EXAMPLES = [
@@ -30,8 +30,13 @@ export function MainContent({ token }: { token: string }) {
     try {
       const response = await fetch(`${API_BASE_URL}/api/suggestions`);
       const data = await response.json();
-      if (data.suggestions && data.suggestions.length > 0) {
-        setCurrentExamples(data.suggestions.slice(0, 4));
+      if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        const validStrings = data.suggestions
+          .map((item: any) => (typeof item === 'string' ? item : item?.theme || item?.title || ''))
+          .filter((s: string) => s.length > 0);
+        if (validStrings.length > 0) {
+          setCurrentExamples(validStrings.slice(0, 4));
+        }
       }
     } catch (err) {
       console.error("Erro ao buscar exemplos da IA:", err);
@@ -62,8 +67,8 @@ export function MainContent({ token }: { token: string }) {
       }, 8000);
 
       timeout3 = setTimeout(() => {
-        setLoadingText("Salvando a playlist na sua conta... Pode demorar se tiver muitas músicas!");
-      }, 14000);
+        setLoadingText("Gerando capa com IA e salvando playlist...");
+      }, 13000);
     }
 
     return () => {
@@ -78,9 +83,13 @@ export function MainContent({ token }: { token: string }) {
     try {
       let activeProf = userProf || profile;
       if (!activeProf) {
-        activeProf = await fetch('https://api.spotify.com/v1/me', {
+        const meRes = await fetch('https://api.spotify.com/v1/me', {
           headers: { Authorization: `Bearer ${token}` }
-        }).then((res) => res.json());
+        });
+        if (!meRes.ok) {
+          throw new Error(`Spotify /me status ${meRes.status}`);
+        }
+        activeProf = await meRes.json();
         setProfile(activeProf);
       }
 
@@ -136,7 +145,14 @@ export function MainContent({ token }: { token: string }) {
       const data = await response.json();
       
       if (data.success && data.url) {
-        toast.success("Playlist criada com sucesso no seu Spotify!");
+        if (data.playlistId && data.coverUrl) {
+          saveCustomPlaylistCover(data.playlistId, data.coverUrl);
+        }
+        toast.success(
+          data.coverUploaded
+            ? "Playlist e capa geradas com IA no seu Spotify!"
+            : "Playlist criada com sucesso no seu Spotify!"
+        );
         window.open(data.url, "_blank");
 
         // Salvar no Histórico local
@@ -278,26 +294,29 @@ export function MainContent({ token }: { token: string }) {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-            {playlists.map((pl, i) => (
-              <a 
-                href={pl.external_urls?.spotify || '#'} 
-                target="_blank" 
-                key={pl.id || i} 
-                className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] transition-colors cursor-pointer group flex flex-col justify-between"
-              >
-                <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center">
-                  {pl.images && pl.images.length > 0 ? (
-                    <img src={pl.images[0].url} alt={pl.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
-                  <p className="text-[11px] sm:text-xs text-gray-400">{getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
-                </div>
-              </a>
-            ))}
+            {playlists.map((pl, i) => {
+              const coverUrl = getPlaylistCoverUrl(pl);
+              return (
+                <a 
+                  href={pl.external_urls?.spotify || '#'} 
+                  target="_blank" 
+                  key={pl.id || i} 
+                  className="bg-dark-surface p-3 sm:p-4 rounded-xl hover:bg-[#252033] transition-colors cursor-pointer group flex flex-col justify-between"
+                >
+                  <div className="aspect-square bg-gray-800 rounded-lg mb-3 sm:mb-4 overflow-hidden flex items-center justify-center">
+                    {coverUrl ? (
+                      <img src={coverUrl} alt={pl.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <Music size={32} className="text-gray-600 sm:w-10 sm:h-10" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{pl.name || 'Sem nome'}</h4>
+                    <p className="text-[11px] sm:text-xs text-gray-400">{getPlaylistTrackCount(pl)} músicas • {pl.public ? 'Pública' : 'Privada'}</p>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         )}
       </div>

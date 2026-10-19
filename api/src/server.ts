@@ -32,12 +32,13 @@ app.get('/', (req, res) => {
 // Endpoint para iniciar o login com o Spotify
 app.get('/api/auth/login', (req, res) => {
   try {
-    const scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
+    const scope = 'user-read-private user-read-email ugc-image-upload playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing';
     const authQueryParameters = new URLSearchParams({
       response_type: 'code',
       client_id: SPOTIFY_CLIENT_ID,
       scope: scope,
       redirect_uri: REDIRECT_URI,
+      show_dialog: 'true',
     });
 
     res.redirect(`https://accounts.spotify.com/authorize?${authQueryParameters.toString()}`);
@@ -73,9 +74,127 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
+// Endpoint para renovar o access_token quando expirar (evita travar na tela após 1h)
+app.post('/api/auth/refresh', async (req, res) => {
+  const { refresh_token } = req.body;
+  if (!refresh_token) {
+    return res.status(400).json({ error: 'Refresh token ausente' });
+  }
+
+  try {
+    const response = await axios.post('https://accounts.spotify.com/api/token', new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refresh_token
+    }).toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64')
+      }
+    });
+
+    const { access_token, expires_in, refresh_token: new_refresh_token } = response.data;
+    res.json({
+      access_token,
+      expires_in,
+      refresh_token: new_refresh_token || refresh_token
+    });
+  } catch (error: any) {
+    console.error('Erro ao renovar token do Spotify:', error.response?.data || error.message);
+    res.status(401).json({ error: 'Falha ao renovar sessao do Spotify' });
+  }
+});
+
+// Funcao auxiliar para gerar capa de playlist com IA (<256KB JPEG) e enviar para o Spotify
+async function generateAndUploadPlaylistCover(
+  playlistId: string,
+  themeDescription: string,
+  token: string
+): Promise<{ uploaded: boolean; coverUrl: string | null; errorStatus?: number; errorMessage?: string }> {
+  const cleanTheme = themeDescription.replace(/^SPG:\s*/i, '').trim() || 'musica e emocao';
+  let visualPrompt = `music album cover art representing "${cleanTheme}", aesthetic digital illustration, atmospheric lighting, square vinyl art, no text, no letters`;
+
+  // Tenta enriquecer o prompt visual rapidamente em inglês para gerar uma arte ainda mais fiel
+  try {
+    const promptInstruction = `Transforme este tema de playlist musical em uma descrição visual curta em inglês (máximo 18 palavras) para uma capa de álbum artística, sem textos nem palavras escritas na imagem. Tema: "${cleanTheme}". Responda APENAS a frase em inglês.`;
+    if (process.env.GROQ_API_KEY) {
+      const { OpenAI } = require('openai');
+      const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const groqRes = await groq.chat.completions.create({
+        model: "openai/gpt-oss-20b",
+        messages: [{ role: "user", content: promptInstruction }],
+        temperature: 0.7
+      });
+      const refined = groqRes.choices[0]?.message?.content?.trim();
+      if (refined && refined.length > 5) {
+        visualPrompt = `${refined.replace(/["']/g, '')}, square music album cover art, high quality digital painting, no text`;
+      }
+    }
+  } catch {
+    // Segue com o visualPrompt padrão caso a tradução falhe
+  }
+
+  const seed = Math.floor(Math.random() * 1000000);
+  const fetchImageBase64 = async (size: number): Promise<string> => {
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=${size}&height=${size}&nologo=true&seed=${seed}`;
+    const imgRes = await axios.get(url, {
+      responseType: 'arraybuffer',
+      timeout: 22000
+    });
+    return Buffer.from(imgRes.data).toString('base64');
+  };
+
+  let base64Image = '';
+  try {
+    base64Image = await fetchImageBase64(512);
+    // O Spotify exige no máximo 256 KB no payload Base64
+    if (base64Image.length > 245000) {
+      base64Image = await fetchImageBase64(384);
+    }
+  } catch (imgErr: any) {
+    console.warn('Pollinations demorou ou falhou, usando fallback artístico para capa:', imgErr.message);
+    try {
+      const fallbackRes = await axios.get(`https://picsum.photos/seed/${seed}/500/500.jpg`, {
+        responseType: 'arraybuffer',
+        timeout: 10000
+      });
+      base64Image = Buffer.from(fallbackRes.data).toString('base64');
+    } catch (fbErr: any) {
+      return { uploaded: false, coverUrl: null, errorMessage: 'Não foi possível gerar a imagem de capa no momento.' };
+    }
+  }
+
+  const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+
+  try {
+    await axios.put(
+      `https://api.spotify.com/v1/playlists/${playlistId}/images`,
+      base64Image,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'image/jpeg'
+        }
+      }
+    );
+    return { uploaded: true, coverUrl: dataUrl };
+  } catch (uploadErr: any) {
+    const status = uploadErr.response?.status;
+    console.error('Erro ao enviar capa para o Spotify:', status, uploadErr.response?.data || uploadErr.message);
+    return {
+      uploaded: false,
+      coverUrl: dataUrl,
+      errorStatus: status,
+      errorMessage:
+        status === 401 || status === 403
+          ? 'Permissão de imagem pendente: clique em "Sair" e conecte sua conta do Spotify novamente para autorizar a troca de capas.'
+          : 'Não foi possível salvar a capa no Spotify.'
+    };
+  }
+}
+
 // ENDPOINT PRINCIPAL DA NOSSA IA
 app.post('/api/generate', async (req, res) => {
-  const { prompt, token, trackCount = 20 } = req.body;
+  const { prompt, token, trackCount = 20, generateCover = true } = req.body;
 
   if (!prompt || !token) {
     return res.status(400).json({ error: 'Prompt ou Token ausente' });
@@ -191,13 +310,40 @@ app.post('/api/generate', async (req, res) => {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
 
+    // 5. Gerar e aplicar capa personalizada com IA por padrão
+    let coverUrl: string | null = null;
+    let coverUploaded = false;
+    if (generateCover !== false) {
+      const coverResult = await generateAndUploadPlaylistCover(playlistId, prompt, token);
+      coverUrl = coverResult.coverUrl;
+      coverUploaded = coverResult.uploaded;
+    }
+
     // Pronto! Devolver pro Frontend
-    res.json({ success: true, url: playlistUrl, playlistId, playlistName: `SPG: ${playlistName}`, trackCount: trackUris.length });
+    res.json({
+      success: true,
+      url: playlistUrl,
+      playlistId,
+      playlistName: `SPG: ${playlistName}`,
+      trackCount: trackUris.length,
+      coverUrl,
+      coverUploaded
+    });
 
   } catch (error: any) {
     console.error("Erro na geracao da playlist:", error.response?.data || error.message || error);
     if (error?.message?.includes("Todas IAs falharam")) {
       return res.status(503).json({ error: 'As IAs falharam por limite de cota. Tente novamente mais tarde.' });
+    }
+    if (error.response?.status === 403) {
+      return res.status(403).json({
+        error: 'Sua conta do Spotify ainda não está liberada no painel de desenvolvedor do app (User Management no Spotify Developer Dashboard).'
+      });
+    }
+    if (error.response?.status === 401) {
+      return res.status(401).json({
+        error: 'Sua sessão do Spotify expirou. Saia e conecte sua conta novamente.'
+      });
     }
     if (error.response?.data?.error?.message) {
       return res.status(500).json({ error: `Spotify: ${error.response.data.error.message}` });
@@ -256,8 +402,15 @@ app.get('/api/suggestions', async (req, res) => {
     }
     
     const cleanOutput = aiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
-    const suggestions = JSON.parse(cleanOutput);
-    res.json({ suggestions });
+    const parsed = JSON.parse(cleanOutput);
+    const rawArray = Array.isArray(parsed) ? parsed : [];
+    const suggestions = rawArray
+      .map((item: any) => (typeof item === 'string' ? item : item?.theme || item?.title || item?.name || ''))
+      .filter((s: string) => s.length > 0);
+
+    res.json({
+      suggestions: suggestions.length > 0 ? suggestions : ["Vampiro melancólico", "Dirigindo de madrugada", "TSL + Deftones + HIM", "Anos 2000"]
+    });
   } catch (error) {
     console.error("Erro ao gerar sugestoes:", error);
     res.json({ suggestions: ["Vampiro melancólico", "Dirigindo de madrugada", "TSL + Deftones + HIM", "Anos 2000"] });
@@ -412,6 +565,38 @@ app.post('/api/playlist/append-track', async (req, res) => {
   } catch (error: any) {
     console.error("Erro ao adicionar faixa:", error.response?.data || error.message || error);
     res.status(500).json({ error: error.response?.data?.error?.message || 'Falha ao adicionar música.' });
+  }
+});
+
+// Endpoint para gerar e alterar a capa de uma playlist existente com IA
+app.post('/api/playlist/cover-ai', async (req, res) => {
+  const { playlistId, playlistName, playlistDesc, existingTracks, prompt, token } = req.body;
+  if (!playlistId || !token) {
+    return res.status(400).json({ error: 'Playlist ID ou Token ausente' });
+  }
+
+  const customPrompt = (prompt || '').trim();
+  const cleanTitle = (playlistName || 'Playlist Musical').replace(/^SPG:\s*/i, '').trim();
+  const sampleArtists = Array.isArray(existingTracks) && existingTracks.length > 0
+    ? existingTracks.slice(0, 5).join(', ')
+    : '';
+
+  const themeDescription = customPrompt
+    ? `${customPrompt} (Playlist: ${cleanTitle})`
+    : `${cleanTitle}${playlistDesc ? ` - ${playlistDesc}` : ''}${sampleArtists ? ` (Estilo de: ${sampleArtists})` : ''}`;
+
+  try {
+    const result = await generateAndUploadPlaylistCover(playlistId, themeDescription, token);
+    if (result.uploaded && result.coverUrl) {
+      return res.json({ success: true, coverUrl: result.coverUrl });
+    }
+    return res.status(result.errorStatus || 500).json({
+      error: result.errorMessage || 'Não foi possível atualizar a capa da playlist.',
+      coverUrl: result.coverUrl
+    });
+  } catch (error: any) {
+    console.error('Erro em /api/playlist/cover-ai:', error.message || error);
+    res.status(500).json({ error: 'Erro interno ao gerar capa com IA.' });
   }
 });
 

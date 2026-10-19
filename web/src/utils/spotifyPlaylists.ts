@@ -113,3 +113,36 @@ export async function enrichPlaylistTrackCounts(
   }
 }
 
+const CUSTOM_COVERS_STORAGE_KEY = 'spg_custom_covers';
+
+export function saveCustomPlaylistCover(playlistId: string, coverUrl: string) {
+  if (!playlistId || !coverUrl) return;
+  try {
+    const raw = sessionStorage.getItem(CUSTOM_COVERS_STORAGE_KEY);
+    const map: Record<string, string> = raw ? JSON.parse(raw) : {};
+    map[playlistId] = coverUrl;
+    sessionStorage.setItem(CUSTOM_COVERS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore storage limits
+  }
+}
+
+export function getPlaylistCoverUrl(pl: any): string | null {
+  if (!pl) return null;
+  if (pl.customCoverUrl) return pl.customCoverUrl;
+  try {
+    const raw = sessionStorage.getItem(CUSTOM_COVERS_STORAGE_KEY);
+    if (raw && pl.id) {
+      const map: Record<string, string> = JSON.parse(raw);
+      if (map[pl.id]) return map[pl.id];
+    }
+  } catch {
+    // Ignore
+  }
+  if (pl.images && pl.images.length > 0 && pl.images[0]?.url) {
+    return pl.images[0].url;
+  }
+  return null;
+}
+
+
